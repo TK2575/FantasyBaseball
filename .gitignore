@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+.httr-oauth
+fantasy_baseball.Rproj
+.Renviron

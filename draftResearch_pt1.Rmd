@@ -9,6 +9,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+source("R/yahoo_api.R")
 library(tidyverse)
 ```
 
@@ -31,4 +32,7 @@ pitchers
 batters
 ```
 
+```{r}
+yahoo_api("users;use_login=1/games;game_keys=nfl/teams")
+```
 
