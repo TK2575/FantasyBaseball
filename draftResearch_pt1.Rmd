@@ -33,6 +33,8 @@ batters
 ```
 
 ```{r}
-yahoo_api("users;use_login=1/games;game_keys=nfl/teams")
+yahoo_api("users;use_login=1/games;game_keys=mlb/players") -> players
+
+players %>% View()
 ```
 
