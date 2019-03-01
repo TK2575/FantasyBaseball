@@ -1,6 +1,7 @@
 library(httr)
 library(httpuv)
 library(jsonlite)
+library(magrittr)
 
 app_keys <- function() {
   key <- Sys.getenv('YAHOO_KEY')
@@ -31,7 +32,7 @@ authenticate <- function() {
   config(token = token)
 }
 
-yahoo_api <- function(path) {
+get_json <- function(path) {
   
   config <- authenticate()
   ua <- user_agent("http://github.com/TK2575/ff_data")
@@ -61,6 +62,19 @@ yahoo_api <- function(path) {
     )
   }
   
+  resp
+}
+
+print.yahoo_api <- function(x, ...) {
+  cat("<Yahoo ", x$path, ">\n", sep = "")
+  str(x$content)
+  invisible(x)
+}
+
+parse_resp <- function(resp) {
+  parsed <- fromJSON(content(resp, "text"),
+                     simplifyVector = F)
+  
   structure(
     list(
       content = parsed,
@@ -72,10 +86,9 @@ yahoo_api <- function(path) {
   
 }
 
-print.yahoo_api <- function(x, ...) {
-  cat("<Yahoo ", x$path, ">\n", sep = "")
-  str(x$content)
-  invisible(x)
+yahoo_api <- function(path) {
+  get_json() %>%
+    parse_resp()    
 }
 
 

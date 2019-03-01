@@ -11,7 +11,26 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 source("R/yahoo_api.R")
 library(tidyverse)
+library(rlist)
 ```
+
+# Position Eligibility
+
+```{r}
+get_json("users;use_login=1/games;game_keys=mlb/players") -> players
+
+players %>%
+  content() -> players_content
+
+players_content$fantasy_content$users$`0`$user[[2]]$games$`0`$game[[2]]$players[c(1:25)] -> players_list
+
+players_list %>% rlist::list.stack()
+
+players %>% list.load()
+
+```
+
+# Projection Data
 
 Info for getting depth chart projections:
 [Batters](https://www.fangraphs.com/projections.aspx?pos=all&stats=bat&type=fangraphsdc&team=0&lg=all&players=0)
@@ -31,10 +50,3 @@ batters <- read_csv("data/depthChartProjections_batters_20190220.csv")
 pitchers
 batters
 ```
-
-```{r}
-yahoo_api("users;use_login=1/games;game_keys=mlb/players") -> players
-
-players %>% View()
-```
-
