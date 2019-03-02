@@ -24,11 +24,26 @@ players %>%
 
 players_content$fantasy_content$users$`0`$user[[2]]$games$`0`$game[[2]]$players[c(1:25)] -> players_list
 
-players_list %>% rlist::list.stack()
+# trying different approach from https://cran.r-project.org/web/packages/jsonlite/vignettes/json-aaquickstart.html
+players %>%
+  content("text") %>%
+  fromJSON() -> players_fromJSON
 
-players %>% list.load()
+players_fromJSON$fantasy_content$users$`0`$user$games$`0`$game[[2]]$players[1:25] -> players_fromJSON_dataframe
 
+
+players_fromJSON_dataframe$`0`$player[[2]][[1]]
+
+# data camp approach
+players_content$fantasy_content$users$`0`$user[[2]]$games$`0`$game[[2]][[1]] -> players_content_list
+
+players_content_list %>% str(max.level=3)
+players_content_list %>% saveRDS("data/players_content_list.Rds")
 ```
+So this is a list of 26 elements, 25 lists, and "count" int = 25. One player is represented in each of the 25 nested lists, but their data is actually three levels of nesting beneath!
+
+Need to figure out how to extract that great-grandchild list from each of the 25 child lists, then I should be able to stack them via rlist.
+
 
 # Projection Data
 
