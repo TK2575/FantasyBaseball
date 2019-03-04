@@ -11,60 +11,41 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 source("R/yahoo_api.R")
 library(tidyverse)
-library(rlist)
 ```
 
 # Position Eligibility
 
 ```{r}
-get_json("users;use_login=1/games;game_keys=mlb/players") -> players
+get_json("users;use_login=1/games;game_keys=mlb/players;start=0") %>% 
+  content() -> players_resp
+  
+players_resp$fantasy_content$users$`0`$user[[2]]$games$`0`$game[[2]][[1]] -> players_list 
 
-players %>%
-  content() -> players_content
+players_list %>% saveRDS("data/players_list.Rds")
 
-players_content$fantasy_content$users$`0`$user[[2]]$games$`0`$game[[2]]$players[c(1:25)] -> players_list
+players_list$count -> row_count
 
-# trying different approach from https://cran.r-project.org/web/packages/jsonlite/vignettes/json-aaquickstart.html
-players %>%
-  content("text") %>%
-  fromJSON() -> players_fromJSON
-
-players_fromJSON$fantasy_content$users$`0`$user$games$`0`$game[[2]]$players[1:25] -> players_fromJSON_dataframe
-
-
-players_fromJSON_dataframe$`0`$player[[2]][[1]]
-
-# data camp approach
-players_content$fantasy_content$users$`0`$user[[2]]$games$`0`$game[[2]][[1]] -> players_content_list
-
-players_content_list %>% str(max.level=3)
-players_content_list %>% saveRDS("data/players_content_list.Rds")
-```
-So this is a list of 26 elements, 25 lists, and "count" int = 25. One player is represented in each of the 25 nested lists, but their data is actually three levels of nesting beneath!
-
-Need to figure out how to extract that great-grandchild list from each of the 25 child lists, then I should be able to stack them via rlist.
-
-```{r}
-
-single_player_list <- players_content_list[[1]][[1]][[1]]
-single_player_list %>%
-  flatten() %>%
-  as.data.frame()
-
+players_list$`0`[[1]][[1]] %>% flatten() %>% as.data.frame() -> ex_data
 
 suppressWarnings(
-  lapply(players_content_list, function(x) x[[1]][[1]] %>% 
+  lapply(players_list[1:25], function(x) x[[1]][[1]] %>% 
            flatten() %>% 
            as.data.frame()) %>% 
     bind_rows() %>% 
     as_tibble() %>%
     select(-(14:16))-> raw_df
 )
+```
+So this is a list of 26 elements, 25 lists, and "count" int = 25. One player is represented in each of the 25 nested lists, but their data is actually three levels of nesting beneath!
 
-raw_df
+Wrote a function to get iteratively get 25 players, get their data into a df and bind together:
+
+```{r}
+(get_players(50) -> tst_results)
 
 ```
 
+Next, test and cleanup the data, specifically getting the position eligibility. Add a sleep time between calls so we don't hit the API over and over. See if we can join it with the Fangraphs data. Bonus points for applying other pipe operators. 
 
 # Projection Data
 

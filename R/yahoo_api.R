@@ -71,25 +71,44 @@ print.yahoo_api <- function(x, ...) {
   invisible(x)
 }
 
-parse_resp <- function(resp) {
-  parsed <- fromJSON(content(resp, "text"),
-                     simplifyVector = F)
+get_players <- function(rownum=400) {
   
-  structure(
-    list(
-      content = parsed,
-      path = path,
-      response = resp
-    ),
-    class = "yahoo_api"
-  )
+  start <- 0
+  results <- data.frame()
+  times <- (rownum / 25) %>% floor()
   
+  for (i in 0:times) {
+    print(paste("i = ", i, " start = ", start))
+    suppressWarnings(
+      df <- get_players_page(start)
+    )
+    
+    print("binding data")
+    results <- results %>%
+      bind_rows(df)
+    
+    start <- start + 25
+    if (df %>% nrow() < 25) {
+      break
+    }
+  }
+
+  results
 }
 
-yahoo_api <- function(path) {
-  get_json() %>%
-    parse_resp()    
+get_players_page <- function(start) {
+  path <- paste0("users;use_login=1/games;game_keys=mlb/players;start=",start,";count=25")
+  
+  get_json(path) %>% 
+    content() -> players_resp
+  
+  players_resp$fantasy_content$users$`0`$user[[2]]$games$`0`$game[[2]][[1]] -> players_filtered
+  
+  lapply(players_filtered[1:25], function(x) x[[1]][[1]] %>% 
+           flatten() %>% 
+           as.data.frame()) %>% 
+    bind_rows() %>% 
+    as_tibble() %>%
+    select(-(14:16))
 }
-
-
 
