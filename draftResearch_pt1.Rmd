@@ -44,6 +44,27 @@ So this is a list of 26 elements, 25 lists, and "count" int = 25. One player is 
 
 Need to figure out how to extract that great-grandchild list from each of the 25 child lists, then I should be able to stack them via rlist.
 
+```{r}
+
+single_player_list <- players_content_list[[1]][[1]][[1]]
+single_player_list %>%
+  flatten() %>%
+  as.data.frame()
+
+
+suppressWarnings(
+  lapply(players_content_list, function(x) x[[1]][[1]] %>% 
+           flatten() %>% 
+           as.data.frame()) %>% 
+    bind_rows() %>% 
+    as_tibble() %>%
+    select(-(14:16))-> raw_df
+)
+
+raw_df
+
+```
+
 
 # Projection Data
 
