@@ -14,56 +14,21 @@ library(tidyverse)
 ```
 
 # Position Eligibility
-
-```{r}
-get_json("users;use_login=1/games;game_keys=mlb/players;start=0") %>% 
-  content() -> players_resp
-  
-players_resp$fantasy_content$users$`0`$user[[2]]$games$`0`$game[[2]][[1]] -> players_list 
-
-players_list %>% saveRDS("data/players_list.Rds")
-
-players_list$count -> row_count
-
-players_list$`0`[[1]][[1]] %>% flatten() %>% as.data.frame() -> ex_data
-
-suppressWarnings(
-  lapply(players_list[1:25], function(x) x[[1]][[1]] %>% 
-           flatten() %>% 
-           as.data.frame()) %>% 
-    bind_rows() %>% 
-    as_tibble() %>%
-    select(-(14:16))-> raw_df
-)
-```
-So this is a list of 26 elements, 25 lists, and "count" int = 25. One player is represented in each of the 25 nested lists, but their data is actually three levels of nesting beneath!
-
-Wrote a function to get iteratively get 25 players, get their data into a df and bind together:
-
 ```{r}
 (get_players(50) -> tst_results)
 
+tst_results %>%
+  select(starts_with("eligible_positions")) %>%
+  transpose() %>%
+  lapply(as.character) %>%
+  lapply(function(x) x[!is.na(x)]) -> pos_complete
+
+# add list rows representing new column as new column on prior df?
+tst_results %>%
+  add_column(pos_complete) %>%
+  select(1, pos_complete)
+
+
+
 ```
-
-Next, test and cleanup the data, specifically getting the position eligibility. Add a sleep time between calls so we don't hit the API over and over. See if we can join it with the Fangraphs data. Bonus points for applying other pipe operators. 
-
-# Projection Data
-
-Info for getting depth chart projections:
-[Batters](https://www.fangraphs.com/projections.aspx?pos=all&stats=bat&type=fangraphsdc&team=0&lg=all&players=0)
-
-[Pitchers](https://www.fangraphs.com/projections.aspx?pos=all&stats=pit&type=fangraphsdc&team=0&lg=all&players=0)
-
-Download to CSV via:
-`javascript:__doPostBack('ProjectionBoard1$cmdCSV','')`
-
-Downloading manually for now...
-
-```{r}
-pitchers <- read_csv("data/depthChartProjections_pitchers_20190220.csv")
-
-batters <- read_csv("data/depthChartProjections_batters_20190220.csv")
-
-pitchers
-batters
-```
+         

@@ -74,16 +74,12 @@ print.yahoo_api <- function(x, ...) {
 get_players <- function(rownum=400) {
   
   start <- 0
-  results <- data.frame()
+  results <- tibble()
   times <- (rownum / 25) %>% floor()
   
   for (i in 0:times) {
-    print(paste("i = ", i, " start = ", start))
-    suppressWarnings(
       df <- get_players_page(start)
-    )
     
-    print("binding data")
     results <- results %>%
       bind_rows(df)
     
@@ -106,7 +102,7 @@ get_players_page <- function(start) {
   
   lapply(players_filtered[1:25], function(x) x[[1]][[1]] %>% 
            flatten() %>% 
-           as.data.frame()) %>% 
+           as.data.frame(stringsAsFactors = F)) %>% 
     bind_rows() %>% 
     as_tibble() %>%
     select(-(14:16))
