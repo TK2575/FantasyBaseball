@@ -15,54 +15,31 @@ library(tidyverse)
 
 # Position Eligibility
 ```{r}
-(get_players(50) -> tst_results)
-
-tst_results %>% saveRDS("data/tst_results")
-
-```
-Two ways avenues with which I'm hoping to find a solution with at least one. 
-```{r}
-# get all positions per row as list, add to data set
-tst_results %>%
-  select(starts_with("eligible_positions")) %>%
-  transpose() %>%
-  lapply(as.character) %>%
-  lapply(function(x) x[!is.na(x)]) -> pos_complete
-
-tst_results %>%
-  add_column(all_pos = pos_complete) %>%
-  # Challenge - results stord as a list type column, need to convert to a character vector with ", " separator.
-  select(1, all_pos)
-
-```
-
-```{r}
-# rather than store as list, complete the paste of the various columns directly
-collapse_cols <- function(d,...) {
-  vars  <- quos(...)
-  d %>% mutate(f = paste(!!!vars, sep=", "))
-}
-
-# this works, but isn't dynamic based on the potentially varying number of eligible position columns
-tst_results %>%
-  select(starts_with("eligible_positions")) %>%
-  mutate(all_pos = paste(eligible_positions.position,
-                         eligible_positions.position.1, sep = ", ")) %>%
-  select(1,2, all_pos) %>%
-  head()
+suppressWarnings(
+  get_players(312) -> tst_results
+)
 
 col_nms <- tst_results %>%
   select(starts_with("eligible_positions")) %>%
   colnames()
 
-# challenge - pass the dynamic list of column names to the paste function
 tst_results %>%
-  collapse_cols(col_nms) %>%
-  select(f) %>%
-  head()
+  mutate(positions = paste(!!! syms(col_nms), sep = "," )) %>%
+  mutate(positions = gsub('NA', '', positions)) %>%
+  mutate(positions = gsub(',,', '', positions)) %>%
+  select(-(starts_with("eligible_positions"))) %>%
+  select(name.full, display_position, positions) -> tst_results
 
-tst_results %>%
-  mutate(all_pos = paste(quos(eligible_positions.position, eligible_positions.position.1), sep=", ")) %>%
-  select(all_pos)
+tst_results %>% saveRDS("data/tst_results")
+
+View(tst_results)
+
 ```
          
+##### To Do
+
+1. Prevent the need to supressWarnings 
+2. Some merge of display position and positions
+3. Rename df to something useful for joining to other data sets
+4. Figure out what columns to include that will be needed for joining to other data sets
+5. Kill trailing comma in positions column
