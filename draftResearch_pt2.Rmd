@@ -59,3 +59,97 @@ batters <- read_csv(batters_file) %>%
          OBP,
          OPS)
 ```
+
+# Generate rankings
+```{r}
+z_score_count <- function(df, stat, invert=FALSE) {
+  stat <- enquo(stat)
+  col_nm <- paste0("z_", quo_name(stat))
+  
+  df <- df %>% 
+    mutate(s_z = (!! stat - mean(!! stat)) / sd(!! stat)) 
+  
+  if (invert) {
+    df %>%
+      mutate(s_z = -s_z) -> df
+  }
+  
+  df %>%
+   rename(!! col_nm := s_z)
+} 
+
+z_score_rate <- function(df, stat, quantity, invert=FALSE) {
+  stat <- enquo(stat)
+  quantity <- enquo(quantity)
+  col_nm <- paste0("z_",quo_name(stat))
+  
+  df %>%
+    mutate(s_q = (!! stat - mean(!! stat)) * !! quantity) %>%
+    mutate(s_z = (s_q - mean(s_q)) / sd(s_q)) -> df
+  
+  if (invert) {
+    df %>%
+      mutate(s_z = -s_z) -> df
+  }
+  
+  df %>%
+    rename(!! col_nm := s_z) %>%
+    select(-s_q)
+}
+
+(z_pitchers <- pitchers %>%
+  z_score_count(SV) %>%
+  z_score_count(HLD) %>%
+  z_score_rate(ERA, IP, TRUE) %>%
+  z_score_count(SO) %>%
+  z_score_rate(WHIP, IP, TRUE) %>%
+  mutate(
+    z_sum = pmap_dbl(
+      select(., starts_with("z_")), 
+      sum
+    )
+  ) %>%
+  arrange(desc(z_sum))
+)
+
+(z_batters <- batters %>%
+  z_score_count(H) %>%
+  z_score_count(HR) %>%
+  z_score_count(R) %>%
+  z_score_count(RBI) %>%
+  z_score_count(BB) %>%
+  z_score_count(SO, TRUE) %>%
+  z_score_count(SB) %>%
+  z_score_rate(OBP, PA) %>%
+  z_score_rate(OPS, PA) %>%
+  mutate(
+    z_sum = pmap_dbl(
+      select(., starts_with("z_")), 
+      sum
+    )
+  ) %>%
+  arrange(desc(z_sum))
+)
+
+z_batters %>% saveRDS("data/z_batters.Rds")
+z_pitchers %>% saveRDS("data/z_pitchers.Rds")
+
+z_batters %>% 
+  mutate(type = "Batter") %>%
+  bind_rows(z_pitchers) %>%
+  select(playerid, Name, type, ADP, z_sum) %>%
+  filter(ADP < 999) %>%
+  mutate(type = if_else(is.na(type), "Pitcher", type)) %>%
+  arrange(z_sum %>% desc()) %>%
+  ggplot(aes(x=ADP,y=z_sum,color=type)) +
+  geom_point() -> p
+
+plotly::ggplotly(p)
+
+```
+
+### To Do
+1. Strategy for projecting scoring stats not in this data set (i.e. CG/SHO, etc)
+2. Validate findings, control z-scores between batters and players to make them comparable
+3. Develop tiers of players (linear model? nearest neighbor?), visualize - adjust plotly hover over detail to include player name (or maybe just playerid?)
+4. Replacement level stuff (new section)
