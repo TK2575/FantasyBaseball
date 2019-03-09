@@ -2,6 +2,7 @@ library(httr)
 library(httpuv)
 library(jsonlite)
 library(magrittr)
+library(glue)
 
 app_keys <- function() {
   key <- Sys.getenv('YAHOO_KEY')
@@ -73,20 +74,22 @@ print.yahoo_api <- function(x, ...) {
 
 get_players <- function(rownum=400) {
   
-  start <- 0
+  cursor <- 0
   results <- tibble()
-  times <- (rownum / 25) %>% floor()
+  pages <- (rownum / 25) %>% ceiling()
   
-  for (i in 0:times) {
-      df <- get_players_page(start)
+  for (i in 1:(pages)) {
+    print(glue("Retrieving page {i} of {pages}"))  
+    df <- get_players_page(cursor)
     
     results <- results %>%
       bind_rows(df)
     
-    start <- start + 25
+    cursor <- cursor + 25
     if (df %>% nrow() < 25) {
       break
     }
+    Sys.sleep(5)
   }
 
   results

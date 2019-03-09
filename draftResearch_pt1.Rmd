@@ -15,31 +15,25 @@ library(tidyverse)
 
 # Position Eligibility
 ```{r}
-suppressWarnings(
-  get_players(312) -> tst_results
-)
+get_players(450) -> players
 
-col_nms <- tst_results %>%
+position_columns <- players %>%
   select(starts_with("eligible_positions")) %>%
   colnames()
 
-tst_results %>%
-  mutate(positions = paste(!!! syms(col_nms), sep = "," )) %>%
+players %>%
+  mutate(positions = paste(!!! syms(position_columns), sep = "," )) %>%
   mutate(positions = gsub('NA', '', positions)) %>%
-  mutate(positions = gsub(',,', '', positions)) %>%
+  mutate(positions = gsub("^,*|(?<=,),|,*$", "", positions, perl=T)) %>%
   select(-(starts_with("eligible_positions"))) %>%
-  select(name.full, display_position, positions) -> tst_results
+  select(
+    player_id:name.last, 
+    editorial_team_abbr, 
+    position_type, 
+    display_position,
+    positions
+  ) -> players
 
-tst_results %>% saveRDS("data/tst_results")
-
-View(tst_results)
+players %>% saveRDS("data/players_position_eligibility.Rds")
 
 ```
-         
-##### To Do
-
-1. Prevent the need to supressWarnings 
-2. Some merge of display position and positions
-3. Rename df to something useful for joining to other data sets
-4. Figure out what columns to include that will be needed for joining to other data sets
-5. Kill trailing comma in positions column
