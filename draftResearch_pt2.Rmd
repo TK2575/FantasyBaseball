@@ -1,0 +1,61 @@
+---
+title: "Draft Research pt2"
+author: "Tom Kain"
+date: "March 8, 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Custom player rankings
+
+Goals:
+1. Import projection data, as automated as possible
+2. Generate ranks based on league stat categories using projection data via z-scores controlling for PA/IP
+3. Determine a replacement-level performance and scale rankings accordingly
+
+# Import
+Info for getting depth chart projections:
+[Batters](https://www.fangraphs.com/projections.aspx?pos=all&stats=bat&type=fangraphsdc&team=0&lg=all&players=0)
+
+
+[Pitchers](https://www.fangraphs.com/projections.aspx?pos=all&stats=pit&type=fangraphsdc&team=0&lg=all&players=0)
+
+Download to CSV via:
+`javascript:__doPostBack('ProjectionBoard1$cmdCSV','')`
+
+Downloading manually for now. The scoring categories for our league:
+Batters: R, H, HR, RBI, SB, BB, K, OBP, OPS - Not included in data set: E
+Pitchers: SV, K, HLD, ERA, WHIP - Not included in data set: NH, QS, BSV, CG, SHO
+
+```{r}
+pitchers_file <- "data/depthChartProjections_pitchers_20190308.csv"
+batters_file <- "data/depthChartProjections_batters_20190308.csv"
+
+pitchers <- read_csv(pitchers_file) %>%
+  select(playerid, 
+         Name, 
+         Team,
+         ADP,
+         IP,
+         SV:ERA,
+         SO,
+         WHIP)
+  
+batters <- read_csv(batters_file) %>%
+  select(playerid,
+         Name,
+         Team,
+         ADP,
+         PA,
+         H,
+         HR:SO,
+         SB,
+         OBP,
+         OPS)
+```
