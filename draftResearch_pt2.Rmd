@@ -66,7 +66,7 @@ batters <- batters_raw %>%
 
 # Generate rankings
 ```{r}
-z_score_count <- function(df, stat, invert=FALSE) {
+z_score_count <- function(df, stat, invert=FALSE, multiplier=1) {
   stat <- enquo(stat)
   col_nm <- paste0("z_", quo_name(stat))
   
@@ -78,11 +78,16 @@ z_score_count <- function(df, stat, invert=FALSE) {
       mutate(s_z = -s_z) -> df
   }
   
+  if (multiplier != 1) {
+    df %>%
+      mutate(s_z = multiplier * s_z) -> df
+  }
+  
   df %>%
    rename(!! col_nm := s_z)
 } 
 
-z_score_rate <- function(df, stat, quantity, invert=FALSE) {
+z_score_rate <- function(df, stat, quantity, invert=FALSE, multiplier = 1) {
   stat <- enquo(stat)
   quantity <- enquo(quantity)
   col_nm <- paste0("z_",quo_name(stat))
@@ -94,6 +99,11 @@ z_score_rate <- function(df, stat, quantity, invert=FALSE) {
   if (invert) {
     df %>%
       mutate(s_z = -s_z) -> df
+  }
+  
+  if (multiplier != 1) {
+    df %>%
+      mutate(s_z = multiplier * s_z) -> df
   }
   
   df %>%
@@ -227,13 +237,53 @@ sv_pitching %>%
 As expected, not much with the existing data to correlate Blown Saves, so I the takeaway will probably be to more highly weigh ERA and WHIP. 
 
 ##### QS
-```{r}
+Struggling to find meaningful QS data to work with, but again, I'm thinking the takeaway will be more weighting on ERA & WHIP. 
 
+##### Z-Score Adjustments
+I originally added a multiplier of 3 to two of the pitching categories, so that it would mean there were "nine" categories for both pitching and batting that make up the z_sum. 
+The result was that pitching z_sums had a much wider range, to the point where three pitchers had a higher z_sum than Mike Trout, who was coming out roughly as valuable as Justin Verlander. 
+Weighting the categories so that there would be an "equal" number of categories felt right, but I wonder if that's giving too much credit to scarce categories like CG/SHO. 
+For now, I've set the multiplier to 2. The results are still a bit "scandalous" (Mookie Betts going after Sale/deGrom/Scherzer) but this is a better starting point for a conversation.
+Need to take a deeper look into how I'm comparing the relative value between pitcher and catcher rather than setting the multiplier to get results I'm expecting. 
+```{r}
+(z_pitchers_adj <- pitchers %>%
+  filter(ADP < 999) %>%
+  z_score_count(SV) %>%
+  z_score_count(HLD) %>%
+  z_score_rate(ERA, IP, TRUE, multiplier=2) %>%
+  z_score_count(SO) %>%
+  z_score_rate(WHIP, IP, TRUE, multiplier=2) %>%
+  mutate(
+    z_sum = pmap_dbl(
+      select(., starts_with("z_")), 
+      sum
+    )
+  ) %>%
+  arrange(desc(z_sum))
+)
+
+(z_compare_adj <- z_batters %>% 
+  mutate(type = "Batter") %>%
+  bind_rows(z_pitchers_adj) %>%
+  mutate(type = if_else(is.na(type), "Pitcher", type)) %>%
+  arrange(z_sum %>% desc()) %>%
+  mutate(ovrl_rank = row_number()))
+
+z_compare_adj %>% saveRDS("data/z_compare_adj.Rds")
+
+z_compare_adj %>%  
+  filter(Name == "Miguel Cabrera" | Name == "Kyle Freeland") %>% 
+  View()
+
+z_compare_adj %>%
+  ggplot(aes(x=ADP,y=z_sum,color=type)) +
+  geom_point(aes(text=Name)) -> p_adj
+
+plotly::ggplotly(p_adj)
 ```
 
 ### To Do
-1. Strategy for projecting scoring stats not in this data set (i.e. CG/SHO, etc)
-2. Validate findings, control z-scores between batters and players to make them comparable
-3. visualize - adjust plotly hover over detail to include player name (or maybe just playerid?)
-4. Develop tiers of players (linear model? nearest neighbor?)
-5. Replacement level stuff (new section)
+1. Validate findings, control z-scores between batters and players to make them comparable
+2. visualize - adjust plotly hover over detail to include player name (or maybe just playerid?)
+3. Develop tiers of players (linear model? nearest neighbor?)
+4. Replacement level stuff (new section)
