@@ -150,14 +150,18 @@ z_score_rate <- function(df, stat, quantity, invert=FALSE, multiplier = 1) {
 z_batters %>% saveRDS("data/z_batters.Rds")
 z_pitchers %>% saveRDS("data/z_pitchers.Rds")
 
-z_batters %>% 
+z_compare <- z_batters %>% 
   mutate(type = "Batter") %>%
   bind_rows(z_pitchers) %>%
   select(playerid, Name, type, ADP, z_sum) %>%
   mutate(type = if_else(is.na(type), "Pitcher", type)) %>%
-  arrange(z_sum %>% desc()) %>%
-  ggplot(aes(x=ADP,y=z_sum,color=type)) +
-  geom_point(aes(text=Name)) -> p
+  arrange(z_sum %>% desc())
+
+z_compare %>%
+  mutate(ovrl_rank = row_number()) %>%
+  ggplot(aes(x=ADP,y=ovrl_rank,color=type)) +
+  geom_point(aes(text=Name)) +
+  geom_abline(slope=1) -> p
 
 plotly::ggplotly(p)
 
@@ -190,7 +194,7 @@ fielding %>%
   full_join(batters_raw, "playerid") %>%
   filter(ADP < 999) %>%
   select(Name, Team, Pos, E, Def, Fld) %>%
-  filter(is.na(E))
+  filter(!is.na(E)) %>%
   ggplot(aes(x=E,y=Fld)) +
   geom_point()
 
@@ -210,7 +214,7 @@ hist_pitching %>%
   ggplot(aes(x=CG/3,y=IP/3)) +
   geom_point()
 ```
-Looks like there were only two pitchers in the past three years that averaged 1 CG/year with less than 150 IP/year. Takeaway is to weigh IP a bit more. 
+Looks like there were only three pitchers in the past three years that averaged 1 CG/year with less than 150 IP/year. Takeaway is to weigh IP a bit more. 
 
 ##### BSV
 ```{r}
@@ -276,8 +280,9 @@ z_compare_adj %>%
   View()
 
 z_compare_adj %>%
-  ggplot(aes(x=ADP,y=z_sum,color=type)) +
-  geom_point(aes(text=Name)) -> p_adj
+  ggplot(aes(x=ADP,y=ovrl_rank,color=type)) +
+  geom_point(aes(text=Name)) +
+  geom_abline(slope=1)-> p_adj
 
 plotly::ggplotly(p_adj)
 ```
