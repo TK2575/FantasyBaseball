@@ -34,10 +34,14 @@ Batters: R, H, HR, RBI, SB, BB, K, OBP, OPS - Not included in data set: E
 Pitchers: SV, K, HLD, ERA, WHIP - Not included in data set: NH, QS, BSV, CG, SHO
 
 ```{r}
-pitchers_file <- "data/depthChartProjections_pitchers_20190308.csv"
-batters_file <- "data/depthChartProjections_batters_20190308.csv"
+pitchers_raw <- "data/depthChartProjections_pitchers_20190308.csv" %>%
+  read_csv()
+batters_raw <- "data/depthChartProjections_batters_20190308.csv" %>%
+  read_csv()
 
-pitchers <- read_csv(pitchers_file) %>%
+
+
+pitchers <- pitchers_raw %>%
   select(playerid, 
          Name, 
          Team,
@@ -47,7 +51,7 @@ pitchers <- read_csv(pitchers_file) %>%
          SO,
          WHIP)
   
-batters <- read_csv(batters_file) %>%
+batters <- batters_raw %>%
   select(playerid,
          Name,
          Team,
@@ -98,6 +102,7 @@ z_score_rate <- function(df, stat, quantity, invert=FALSE) {
 }
 
 (z_pitchers <- pitchers %>%
+  filter(ADP < 999) %>%
   z_score_count(SV) %>%
   z_score_count(HLD) %>%
   z_score_rate(ERA, IP, TRUE) %>%
@@ -113,6 +118,7 @@ z_score_rate <- function(df, stat, quantity, invert=FALSE) {
 )
 
 (z_batters <- batters %>%
+  filter(ADP < 999) %>%
   z_score_count(H) %>%
   z_score_count(HR) %>%
   z_score_count(R) %>%
@@ -138,18 +144,96 @@ z_batters %>%
   mutate(type = "Batter") %>%
   bind_rows(z_pitchers) %>%
   select(playerid, Name, type, ADP, z_sum) %>%
-  filter(ADP < 999) %>%
   mutate(type = if_else(is.na(type), "Pitcher", type)) %>%
   arrange(z_sum %>% desc()) %>%
   ggplot(aes(x=ADP,y=z_sum,color=type)) +
-  geom_point() -> p
+  geom_point(aes(text=Name)) -> p
 
 plotly::ggplotly(p)
+
+```
+
+### Missing Projection Data
+Looking for some proxies for the following: NH, QS, BSV, CG, SHO, E. NH and SHO scarcity probably isn't worth diving in, probably just weight CG higher if I can project that. As for the remainders:
+
+- Errors : research the correlation with Depth Chart's "FLD" metric to see if that's useful enough to weigh lightly. 
+- BSV : Look at prior years' data to see the blown save rate and see if there's a predictable relationship to anything
+- QS : once we've got a tally (find a source or summarize game logs), same idea as above
+- CG : same
+
+##### Errors
+```{r}
+fielding_standard <- "data/2018_Fielding-Standard.csv" %>%
+  read_csv() %>%
+  mutate(playerid = playerid %>% as.character())
+
+fielding_advanced <- "data/2018_Fielding-Advanced.csv" %>%
+  read_csv() %>%
+  mutate(playerid = playerid %>% as.character()) %>%
+  select(-(Name:Inn))
+
+fielding <- fielding_standard %>%
+  full_join(fielding_advanced, "playerid")
+
+fielding %>%
+  select(playerid, Pos, E, Def) %>%
+  full_join(batters_raw, "playerid") %>%
+  filter(ADP < 999) %>%
+  select(Name, Team, Pos, E, Def, Fld) %>%
+  filter(is.na(E))
+  ggplot(aes(x=E,y=Fld)) +
+  geom_point()
+
+```
+Incomplete listing, probably due to minimum qualified innings, but even with this sample (~ a third of the batters in the depth chart projections), not seeing a pattern. Since there is going to be at least one pitching category I won't be able to project, not having Errors should be ok.
+
+##### CG
+```{r}
+hist_pitching <- "data/2016-2018_Pitching.csv" %>%
+  read_csv()
+
+hist_pitching %>%
+  ggplot(aes(x=CG/3)) + 
+  geom_histogram(binwidth=1)
+
+hist_pitching %>%
+  ggplot(aes(x=CG/3,y=IP/3)) +
+  geom_point()
+```
+Looks like there were only two pitchers in the past three years that averaged 1 CG/year with less than 150 IP/year. Takeaway is to weigh IP a bit more. 
+
+##### BSV
+```{r}
+hist_pitching %>%
+  select(Name, Team, G, IP, ERA, SV, BS) %>%
+  filter(SV > 0 | BS > 0) -> sv_pitching
+
+sv_pitching %>%
+  ggplot(aes(x=SV/3)) +
+  geom_histogram(binwidth=1)
+
+sv_pitching %>%
+  ggplot(aes(x=SV/3,y=BS/3)) +
+  geom_point()
+
+sv_pitching %>%
+  ggplot(aes(x=SV/3,y=IP/3)) +
+  geom_point()
+
+sv_pitching %>%
+  ggplot(aes(x=BS/3,y=IP/3)) +
+  geom_point()
+```
+As expected, not much with the existing data to correlate Blown Saves, so I the takeaway will probably be to more highly weigh ERA and WHIP. 
+
+##### QS
+```{r}
 
 ```
 
 ### To Do
 1. Strategy for projecting scoring stats not in this data set (i.e. CG/SHO, etc)
 2. Validate findings, control z-scores between batters and players to make them comparable
-3. Develop tiers of players (linear model? nearest neighbor?), visualize - adjust plotly hover over detail to include player name (or maybe just playerid?)
-4. Replacement level stuff (new section)
+3. visualize - adjust plotly hover over detail to include player name (or maybe just playerid?)
+4. Develop tiers of players (linear model? nearest neighbor?)
+5. Replacement level stuff (new section)
