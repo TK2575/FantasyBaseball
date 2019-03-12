@@ -287,8 +287,30 @@ z_compare_adj %>%
 plotly::ggplotly(p_adj)
 ```
 
+# Validation
+```{r}
+z_compare_adj %>%
+  filter(type != "Batter") %>% 
+  select(playerid, Name, Team, ADP, ovrl_rank, z_sum, z_ERA, z_WHIP, z_SO, z_SV, z_HLD, IP, ERA, WHIP, SO, SV, HLD) %>%
+  arrange(ADP) %>%
+  View()
+
+z_compare_adj %>%
+  ggplot(aes(z_sum, color = type)) +
+  geom_freqpoly(binwidth=1)
+
+z_compare_adj %>%
+  filter(Name %in% c("Blake Snell", "Andrew Benintendi")) %>%
+  View()
+
+z_compare_adj %>%
+  filter(Name %in% c("James Paxton", "Eugenio Suarez")) %>% 
+  View()
+```
+
+I don't have any objective measure to compare the value between similarly ranked batters and pitchers. I compared a few pairs of players against other expert's rankings and these largely seem to be in line. I'm at a disadvantage without being able to project Quality Starts. However, since I'm walking in with the likely goal of spending early draft capital on hitting and planning to play the waiver wire for two-start/matchup starters, these results should be sufficient. 
 ### To Do
-1. Validate findings, control z-scores between batters and players to make them comparable
-2. visualize - adjust plotly hover over detail to include player name (or maybe just playerid?)
-3. Develop tiers of players (linear model? nearest neighbor?)
-4. Replacement level stuff (new section)
+1. Develop tiers of players (linear model? nearest neighbor?)
+2. Replacement level stuff (new section)
+3. Take averages of multiple projection sources? 
+4. Build team stats based on selections, available players per round? 
