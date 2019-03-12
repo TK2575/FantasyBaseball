@@ -15,7 +15,7 @@ library(tidyverse)
 
 # Position Eligibility
 ```{r}
-get_players(450) -> players
+get_players(850) -> players
 
 position_columns <- players %>%
   select(starts_with("eligible_positions")) %>%

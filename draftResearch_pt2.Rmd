@@ -309,8 +309,3 @@ z_compare_adj %>%
 ```
 
 I don't have any objective measure to compare the value between similarly ranked batters and pitchers. I compared a few pairs of players against other expert's rankings and these largely seem to be in line. I'm at a disadvantage without being able to project Quality Starts. However, since I'm walking in with the likely goal of spending early draft capital on hitting and planning to play the waiver wire for two-start/matchup starters, these results should be sufficient. 
-### To Do
-1. Develop tiers of players (linear model? nearest neighbor?)
-2. Replacement level stuff (new section)
-3. Take averages of multiple projection sources? 
-4. Build team stats based on selections, available players per round? 

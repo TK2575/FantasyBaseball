@@ -1,0 +1,49 @@
+---
+title: "Draft Research pt3"
+author: "Tom Kain"
+date: "March 11, 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Join Data
+Let's see if we can join the eligible position data (Yahoo) with the projection data (Fangraphs).
+
+```{r}
+yahoo <- readRDS('data/players_position_eligibility.Rds') %>%
+  select(name.full, display_position, positions)
+
+fangraphs <- readRDS('data/z_compare_adj.Rds')
+
+df_raw <- fangraphs %>%
+  full_join(yahoo, by = c("Name" = "name.full"))
+
+```
+
+```{r}
+df_raw %>%
+  filter(is.na(display_position)) %>%
+  select(Name, positions, ADP, ovrl_rank, z_sum) %>%
+  head(25)
+
+df_raw %>%
+  filter(Name == "Jose Ramirez") %>%
+  select(Name, positions, ADP, ovrl_rank, z_sum) %>%
+  head()
+
+fangraphs %>%
+  count()
+```
+
+### To Do
+1. Missing joins in yahoo data (i.e. Jose Ramirez) due to inconsistent accent marks on letters (and maybe other causes too?)
+2. Develop tiers of players (linear model? nearest neighbor?)
+3. Replacement level stuff (new section)
+4. Take averages of multiple projection sources? 
+5. Build team stats based on selections, available players per round? 
