@@ -10,12 +10,13 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 source("R/yahoo_api.R")
+options(tidyverse.quiet=TRUE)
 library(tidyverse)
 ```
 
 # Position Eligibility
 ```{r}
-get_players(850) -> players
+get_players(2500) -> players
 
 position_columns <- players %>%
   select(starts_with("eligible_positions")) %>%

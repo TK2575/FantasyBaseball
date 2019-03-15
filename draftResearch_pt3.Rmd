@@ -9,7 +9,9 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+options(tidyverse.quiet=TRUE)
 library(tidyverse)
+library(fuzzyjoin)
 ```
 
 # Join Data
@@ -17,28 +19,47 @@ Let's see if we can join the eligible position data (Yahoo) with the projection 
 
 ```{r}
 yahoo <- readRDS('data/players_position_eligibility.Rds') %>%
-  select(name.full, display_position, positions)
+  select(name.full, display_position, positions) %>%
+  mutate(name.full = chartr("áéóíñú", "aeoinu", name.full))
+
+yahoo$name.full[yahoo$name.full == 'Daniel Vogelbach'] <- "Dan Vogelbach"
+yahoo$name.full[yahoo$name.full == 'Shohei Ohtani (Batter)'] <- "Shohei Ohtani"
 
 fangraphs <- readRDS('data/z_compare_adj.Rds')
+
+fangraphs$Name[fangraphs$Name == 'Enrique Hernandez'] <- "Kike Hernandez"
+fangraphs$Name[fangraphs$Name == 'Cedric Mullins II'] <- "Cedric Mullins"
+fangraphs$Name[fangraphs$Name == 'Michael Soroka'] <- "Mike Soroka"
+fangraphs$Name[fangraphs$Name == 'Nathaniel Lowe'] <- "Nate Lowe"
+fangraphs$Name[fangraphs$Name == 'Nathan Karns'] <- "Nate Karns"
 
 df_raw <- fangraphs %>%
   full_join(yahoo, by = c("Name" = "name.full"))
 
+df_fuzzy <- fangraphs %>%
+  stringdist_full_join(yahoo, by = c("Name" = "name.full"))
+
+df_raw %>% 
+  count(is.na(display_position) & is.na(positions))
+df_fuzzy %>% 
+  count(is.na(display_position) & is.na(positions))
 ```
 
+#### Orphaned Records after join fixes
+1. Replaced accented characters to characters without accents
+2. Fuzzy join
+3. Yahoo API query for *2500* players (rather than 850)
+4. Duplicate Shohei Ohtani records, lack of pitching projections
+5. Multiple player minor name mismatches
+
+
 ```{r}
-df_raw %>%
-  filter(is.na(display_position)) %>%
-  select(Name, positions, ADP, ovrl_rank, z_sum) %>%
-  head(25)
+df_fuzzy %>% 
+  filter(is.na(display_position) & is.na(positions)) %>%
+  View()
 
-df_raw %>%
-  filter(Name == "Jose Ramirez") %>%
-  select(Name, positions, ADP, ovrl_rank, z_sum) %>%
-  head()
-
-fangraphs %>%
-  count()
+yahoo %>% filter("Riley" %>% grepl(name.full))
+fangraphs %>% filter("Riley" %>% grepl(Name)) %>% select(Name)
 ```
 
 ### To Do

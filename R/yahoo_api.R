@@ -72,9 +72,9 @@ print.yahoo_api <- function(x, ...) {
   invisible(x)
 }
 
-get_players <- function(rownum=400) {
+get_players <- function(rownum=25, start=0) {
   
-  cursor <- 0
+  cursor <- start
   results <- tibble()
   pages <- (rownum / 25) %>% ceiling()
   
@@ -87,6 +87,7 @@ get_players <- function(rownum=400) {
     
     cursor <- cursor + 25
     if (df %>% nrow() < 25) {
+      print(glue("No more players to retrieve, exiting"))
       break
     }
     Sys.sleep(5)
@@ -103,7 +104,9 @@ get_players_page <- function(start) {
   
   players_resp$fantasy_content$users$`0`$user[[2]]$games$`0`$game[[2]][[1]] -> players_filtered
   
-  lapply(players_filtered[1:25], function(x) x[[1]][[1]] %>% 
+  count <- players_filtered$count
+  
+  lapply(players_filtered[1:count], function(x) x[[1]][[1]] %>% 
            flatten() %>% 
            as.data.frame(stringsAsFactors = F)) %>% 
     bind_rows() %>% 

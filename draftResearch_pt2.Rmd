@@ -9,6 +9,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+options(tidyverse.quiet=TRUE)
 library(tidyverse)
 ```
 
@@ -35,9 +36,11 @@ Pitchers: SV, K, HLD, ERA, WHIP - Not included in data set: NH, QS, BSV, CG, SHO
 
 ```{r}
 pitchers_raw <- "data/depthChartProjections_pitchers_20190308.csv" %>%
-  read_csv()
+  read_csv() %>%
+  unique()
 batters_raw <- "data/depthChartProjections_batters_20190308.csv" %>%
-  read_csv()
+  read_csv() %>%
+  unique()
 
 
 
