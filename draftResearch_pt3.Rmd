@@ -10,8 +10,8 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 options(tidyverse.quiet=TRUE)
-library(tidyverse)
-library(fuzzyjoin)
+require(tidyverse)
+require(fuzzyjoin)
 ```
 
 # Join Data
@@ -24,6 +24,10 @@ yahoo <- readRDS('data/players_position_eligibility.Rds') %>%
 
 yahoo$name.full[yahoo$name.full == 'Daniel Vogelbach'] <- "Dan Vogelbach"
 yahoo$name.full[yahoo$name.full == 'Shohei Ohtani (Batter)'] <- "Shohei Ohtani"
+yahoo$name.full[yahoo$name.full == 'Shin-soo Choo'] <- "Shin-Soo Choo"
+yahoo$name.full[yahoo$name.full == 'Seunghwan Oh'] <- "Seung Hwan Oh"
+yahoo$name.full[yahoo$name.full == 'JT Riddle'] <- "J.T. Riddle"
+yahoo$name.full[yahoo$name.full == 'AJ Reed'] <- "A.J. Reed"
 
 fangraphs <- readRDS('data/z_compare_adj.Rds')
 
@@ -32,16 +36,14 @@ fangraphs$Name[fangraphs$Name == 'Cedric Mullins II'] <- "Cedric Mullins"
 fangraphs$Name[fangraphs$Name == 'Michael Soroka'] <- "Mike Soroka"
 fangraphs$Name[fangraphs$Name == 'Nathaniel Lowe'] <- "Nate Lowe"
 fangraphs$Name[fangraphs$Name == 'Nathan Karns'] <- "Nate Karns"
+fangraphs$Name[fangraphs$Name == 'Zach Britton'] <- "Zack Britton"
+fangraphs$Name[fangraphs$Name == 'Joshua James'] <- "Josh James"
+fangraphs$Name[fangraphs$Name == 'D.J. Stewart'] <- "DJ Stewart"
 
-df_raw <- fangraphs %>%
+df_join <- fangraphs %>%
   full_join(yahoo, by = c("Name" = "name.full"))
 
-df_fuzzy <- fangraphs %>%
-  stringdist_full_join(yahoo, by = c("Name" = "name.full"))
-
-df_raw %>% 
-  count(is.na(display_position) & is.na(positions))
-df_fuzzy %>% 
+df_join %>% 
   count(is.na(display_position) & is.na(positions))
 ```
 
@@ -53,18 +55,9 @@ df_fuzzy %>%
 5. Multiple player minor name mismatches
 
 
-```{r}
-df_fuzzy %>% 
-  filter(is.na(display_position) & is.na(positions)) %>%
-  View()
-
-yahoo %>% filter("Riley" %>% grepl(name.full))
-fangraphs %>% filter("Riley" %>% grepl(Name)) %>% select(Name)
-```
 
 ### To Do
-1. Missing joins in yahoo data (i.e. Jose Ramirez) due to inconsistent accent marks on letters (and maybe other causes too?)
-2. Develop tiers of players (linear model? nearest neighbor?)
-3. Replacement level stuff (new section)
-4. Take averages of multiple projection sources? 
-5. Build team stats based on selections, available players per round? 
+1. Develop tiers of players (linear model? nearest neighbor?)
+2. Replacement level stuff (new section)
+3. Take averages of multiple projection sources? 
+4. Build team stats based on selections, available players per round? 
