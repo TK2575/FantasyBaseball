@@ -10,8 +10,8 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 options(tidyverse.quiet=TRUE)
-require(tidyverse)
-require(fuzzyjoin)
+library(plotly)
+library(tidyverse)
 ```
 
 # Join Data
@@ -41,7 +41,8 @@ fangraphs$Name[fangraphs$Name == 'Joshua James'] <- "Josh James"
 fangraphs$Name[fangraphs$Name == 'D.J. Stewart'] <- "DJ Stewart"
 
 df_join <- fangraphs %>%
-  full_join(yahoo, by = c("Name" = "name.full"))
+  full_join(yahoo, by = c("Name" = "name.full")) %>%
+  filter(!is.na(ADP))
 
 df_join %>% 
   count(is.na(display_position) & is.na(positions))
@@ -54,7 +55,51 @@ df_join %>%
 4. Duplicate Shohei Ohtani records, lack of pitching projections
 5. Multiple player minor name mismatches
 
+```{r}
+df_join_positions <-
+  df_join %>%
+  filter(ovrl_rank <= 400) %>%
+  mutate(SP = grepl("SP", display_position)) %>%
+  mutate(RP = grepl("RP", display_position)) %>%
+  mutate(C = grepl("C", display_position)) %>%
+  mutate(`1B` = grepl("1B", display_position)) %>%
+  mutate(`2B` = grepl("2B", display_position)) %>%
+  mutate(SS = grepl("SS", display_position)) %>%
+  mutate(`3B` = grepl("3B", display_position)) %>%
+  mutate(OF = grepl("OF", display_position))
 
+df_join_positions %>% saveRDS("data/projections_with_positions.Rds")
+
+position_plot <- function(df, pos) {
+  pos_var <- enquo(pos)
+  title <- paste0(quo_name(pos_var))
+  
+  df %>%
+    filter(!! pos_var) %>%
+    ggplot(aes(x=ADP, y=ovrl_rank, alpha = z_sum)) + 
+    geom_point(aes(text=Name)) +
+    scale_y_reverse() +
+    geom_abline(slope = -1)
+}
+
+sp_plot <- position_plot(df_join_positions, SP)
+rp_plot <- position_plot(df_join_positions, RP)
+c_plot <- position_plot(df_join_positions, C)
+`1b_plot` <- position_plot(df_join_positions, `1B`)
+`2b_plot` <- position_plot(df_join_positions, `2B`)
+ss_plot <- position_plot(df_join_positions, SS)
+`3b_plot` <- position_plot(df_join_positions, `3B`)
+of_plot <- position_plot(df_join_positions, OF)
+
+subplot(sp_plot , rp_plot , c_plot , `1b_plot`, `2b_plot`, ss_plot , `3b_plot`, of_plot, nrows = 3, shareX = TRUE, shareY = TRUE)
+```
+
+```{r}
+df_join_positions %>%
+  filter(SS) %>%
+  select(Name, ADP, ovrl_rank, z_sum, PA:z_OPS) %>%
+  View()
+```
 
 ### To Do
 1. Develop tiers of players (linear model? nearest neighbor?)
