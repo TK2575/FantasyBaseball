@@ -166,13 +166,74 @@ I'm picking 11 of 12, which means I'll be getting the tail end of odd number rou
 
 ```{r}
 positions_tiers %>%
-  filter(round > 17) %>%
+  filter(round > 23) %>%
   ggplot(aes(x=position, y=z_sum, alpha = desc(round))) +
   geom_jitter(aes(text=Name), width = .3) -> pt_even
 
 ggplotly(pt_even)
 ```
 ```{r}
+
+drafted_players_190316 <- c(
+  "Chris Sale",
+  "Bryce Harper",
+  "Joey Votto",
+  "Carlos Carrasco",
+  "Justin Turner",
+  "Daniel Murphy",
+  "Joey Gallo",
+  "Josh Hader",
+  "Aaron Hicks",
+  "Carlos Santana",
+  "Trevor Story",
+  "Dellin Betances",
+  "David Robertson",
+  "Will Smith",
+  "Andrew Miller",
+  "Kyle Schwarber",
+  "Josh Bell",
+  "Soo Choo",
+  "Brandon Belt",
+  "Chad Green",
+  "Wilmer Flores",
+  "Keone Kela",
+  "Ryan Pressly"
+  )
+
+drafted_team_190316 <- df_join_positions %>%
+  filter(Name %in% drafted_players) 
+
+drafted_batters_190316 <- drafted_team_190316 %>%
+  filter(type == "Batter") %>%
+  mutate(OB = PA * OBP,
+         SLG = OPS - OBP,
+         AB = PA - H,
+         TB = SLG * AB) %>%
+  summarize(PA = sum(PA),
+            H = sum(H),
+            HR = sum(HR),
+            R = sum(R),
+            RBI = sum(RBI),
+            BB = sum(BB),
+            SO = sum(SO),
+            SB = sum(SB),
+            OBP = sum(OB) / PA,
+            SLG = sum(TB) / sum(AB),
+            OPS = OBP + SLG
+            )
+
+drafted_pitchers_190316 <- drafted_team_190316 %>% 
+  filter(type == "Pitcher") %>%
+  mutate(ER = IP/9 * ERA,
+         runners = WHIP * IP) %>%
+  summarize(IP = sum(IP),
+            SV = sum(SV),
+            HLD = sum(HLD),
+            ERA = sum(ER) / (IP/9),
+            WHIP = sum(runners) / IP) 
+
+drafted_team_stats_190316 <- drafted_batters_190316 %>%
+  bind_cols(drafted_pitchers_190316)
 
 ```
 
