@@ -55,6 +55,8 @@ df_join %>%
 4. Duplicate Shohei Ohtani records, lack of pitching projections
 5. Multiple player minor name mismatches
 
+# Compare positions
+
 ```{r}
 df_join_positions <-
   df_join %>%
@@ -94,11 +96,84 @@ of_plot <- position_plot(df_join_positions, OF)
 subplot(sp_plot , rp_plot , c_plot , `1b_plot`, `2b_plot`, ss_plot , `3b_plot`, of_plot, nrows = 3, shareX = TRUE, shareY = TRUE)
 ```
 
+Confirming keeper pick of Trevor Story...
 ```{r}
 df_join_positions %>%
-  filter(SS) %>%
+  filter(grepl("Story|Rendon",Name)) %>%
   select(Name, ADP, ovrl_rank, z_sum, PA:z_OPS) %>%
   View()
+```
+
+# Tiers
+
+```{r}
+SP <- df_join_positions %>%
+  filter(SP) %>%
+  mutate(position = "SP")
+
+RP <- df_join_positions %>%
+  filter(RP) %>%
+  mutate(position = "RP")
+
+C <- df_join_positions %>%
+  filter(C) %>%
+  mutate(position = "C")
+
+`1B` <- df_join_positions %>%
+  filter(`1B`) %>%
+  mutate(position = "1B")
+
+`2B` <- df_join_positions %>%
+  filter(`2B`) %>%
+  mutate(position = "2B")
+
+`3B` <- df_join_positions %>%
+  filter(`3B`) %>%
+  mutate(position = "3B")
+
+SS <- df_join_positions %>%
+  filter(SS) %>%
+  mutate(position = "SS")
+
+OF <- df_join_positions %>%
+  filter(OF) %>%
+  mutate(position = "OF")
+
+positions_tiers <- SP %>%
+	bind_rows(RP) %>%
+	bind_rows(C) %>%
+	bind_rows(`1B`) %>%
+	bind_rows(`2B`) %>%
+	bind_rows(`3B`) %>%
+	bind_rows(SS) %>%
+	bind_rows(OF ) %>%
+  select(Name, ADP, z_sum, ovrl_rank, position) %>%
+  mutate(round = ceiling(ADP/12))
+
+positions_tiers %>%
+  select(ADP, round) %>% head(25)
+
+positions_tiers %>%
+  filter(z_sum > 0) %>%
+  ggplot(aes(x=position, y=z_sum, alpha = desc(round))) +
+  geom_jitter(aes(text=Name), width = .3) -> pt
+
+ggplotly(pt)
+```
+
+### Players available in even numbered rounds
+I'm picking 11 of 12, which means I'll be getting the tail end of odd number rounds and getting the jump on even numbered rounds. So, let's just see what kind of team I can make up assuming two picks per even round. 
+
+```{r}
+positions_tiers %>%
+  filter(round > 17) %>%
+  ggplot(aes(x=position, y=z_sum, alpha = desc(round))) +
+  geom_jitter(aes(text=Name), width = .3) -> pt_even
+
+ggplotly(pt_even)
+```
+```{r}
+
 ```
 
 ### To Do
@@ -106,3 +181,4 @@ df_join_positions %>%
 2. Replacement level stuff (new section)
 3. Take averages of multiple projection sources? 
 4. Build team stats based on selections, available players per round? 
+5. Exclude known keepers
