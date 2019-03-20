@@ -11,6 +11,10 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(stop_on_error = 2L)
+source("R/yahoo_api.R")
+options(tidyverse.quiet=TRUE)
+library(tidyverse)
 ```
 
 # Intro
@@ -60,3 +64,106 @@ After playing fantasy baseball for a few seasons and reading up from various exp
 (@) Batter projections tend to be more accurate than pitchers
 (@) I tend to ride the waiver wire for starting pitching to take advantage of two-start weeks in an effort to find quality starts
 (@) Since more batting categories are projected than pitching categories, I tend to put more emphasis on getting hitters early in drafts
+
+# Data Set
+```{r importFangraphs, include=FALSE}
+fangraphs_pitchers <- "data/fangraphs_pitchers.Rds"
+fangraphs_batters <- "data/fangraphs_batters.Rds"
+pitchers_file <- "data/depthChartProjections_pitchers_20190308.csv"
+batters_file <- "data/depthChartProjections_batters_20190308.csv"
+
+if (file.exists(fangraphs_pitchers) && file.exists(fangraphs_batters)) {
+  pitchers <- readRDS(fangraphs_pitchers)
+  batters <- readRDS(fangraphs_batters)
+} else {
+  if (!file.exists(pitchers_file) || !file.exists(batters_file)) {
+  stop("Couldn't find fangraphs export data in the data folder")
+}
+
+  pitchers <- pitchers_file %>%
+    read_csv() %>%
+    unique() %>%
+    select(playerid, 
+           Name, 
+           Team,
+           ADP,
+           IP,
+           SV:ERA,
+           SO,
+           WHIP) %>%
+    mutate(type = "pitcher")
+  
+  batters <- batters_file %>%
+    read_csv() %>%
+    unique() %>%
+    select(playerid,
+           Name,
+           Team,
+           ADP,
+           PA,
+           H,
+           HR:SO,
+           SB,
+           OBP,
+           OPS) %>%
+    mutate(type = "batter")
+  
+  fangraphs <- pitchers %>% 
+    bind_rows(batters)
+  
+  fangraphs$Name[fangraphs$Name == 'Enrique Hernandez'] <- "Kike Hernandez"
+  fangraphs$Name[fangraphs$Name == 'Cedric Mullins II'] <- "Cedric Mullins"
+  fangraphs$Name[fangraphs$Name == 'Michael Soroka'] <- "Mike Soroka"
+  fangraphs$Name[fangraphs$Name == 'Nathaniel Lowe'] <- "Nate Lowe"
+  fangraphs$Name[fangraphs$Name == 'Nathan Karns'] <- "Nate Karns"
+  fangraphs$Name[fangraphs$Name == 'Zach Britton'] <- "Zack Britton"
+  fangraphs$Name[fangraphs$Name == 'Joshua James'] <- "Josh James"
+  fangraphs$Name[fangraphs$Name == 'D.J. Stewart'] <- "DJ Stewart"
+  
+  batters <- fangraphs %>%
+    filter(type="batter") %>%
+    select(-type)
+  
+  pitchers <- fangraphs %>%
+    filter(type="pitcher") %>%
+    select(-type)
+  
+  batters %>% saveRDS(fangraphs_batters)
+  pitchers %>% saveRDS(fangraphs_pitchers)
+}
+
+rm(c(fangraphs_pitchers, fangraphs_batters, pitchers_file, batters_file, fangraphs))
+```
+
+```{r importYahoo, include=FALSE}
+yahoo_file <- "data/players_position_eligibility.Rds"
+if (file.exists(yahoo_file)) {
+  yahoo_players <- readRDS(yahoo_file)
+} else {
+  get_players(2500) -> yahoo_players
+
+  position_columns <- yahoo_players %>%
+    select(starts_with("eligible_positions")) %>%
+    colnames()
+  
+  yahoo_players %>%
+    mutate(positions = paste(!!! syms(position_columns), sep = "," )) %>%
+    mutate(positions = gsub('NA', '', positions)) %>%
+    mutate(positions = gsub("^,*|(?<=,),|,*$", "", positions, perl=T)) %>%
+    select(-(starts_with("eligible_positions"))) %>%
+  select(name.full, display_position, positions) %>%
+  mutate(name.full = chartr("áéóíñú", "aeoinu", name.full))  -> yahoo_players
+  
+  yahoo_players$name.full[yahoo_players$name.full == 'Daniel Vogelbach'] <- "Dan Vogelbach"
+  yahoo_players$name.full[yahoo_players$name.full == 'Shohei Ohtani (Batter)'] <- "Shohei Ohtani"
+  yahoo_players$name.full[yahoo_players$name.full == 'Shin-soo Choo'] <- "Shin-Soo Choo"
+  yahoo_players$name.full[yahoo_players$name.full == 'Seunghwan Oh'] <- "Seung Hwan Oh"
+  yahoo_players$name.full[yahoo_players$name.full == 'JT Riddle'] <- "J.T. Riddle"
+  yahoo_players$name.full[yahoo_players$name.full == 'AJ Reed'] <- "A.J. Reed"
+  
+  yahoo_players %>% 
+    saveRDS(yahoo_file)
+}
+rm(yahoo_file)
+```
+
