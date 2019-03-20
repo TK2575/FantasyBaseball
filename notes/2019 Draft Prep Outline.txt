@@ -1,0 +1,30 @@
+2019 Draft Prep Outline
+
+* Intro, typical strategy *
+	get some bats, maybe an ace, waiver wire some two-starters and get good ratios, HLDs, and maybe some saves with relievers
+	league settings - team makeup and categories (note which ones have projections)
+Get position eligibility data (Yahoo)
+Get Depth Charts projection data (Fangraphs export)
+Join data sets (resolve join errors)
+* Display initial data sets *
+	Both - playerid, Name, team, ADP
+	Pitchers - IP, SV:ERA, SO, WHIP
+	Batters - PA, H, HR:SO, SB, OBP, OPS
+generate z score rankings (move to separate function)
+	weigh pitchers with double multipier for ERA and WHIP to counteract several categories without projections
+* Visual: compare ADP vs rank via z_score, or z_score directly *
+	note the types of players more and less valuable than ADP
+* Visual - same plot faceted by position *
+	note the positions with scarcity, high/low value, etc
+* Visual - boxplot style of z_sum, with position factors *
+	ideally some identifier for median/replacement level/6th or 12th best
+Compare draft strategies
+	best z_sum available staying within positional requirements (bench last? exclude bench?)
+	best z_sum available considering ADP, position scarcity
+	measure trade offs by taking lower z_sums in scare positions vs going for high z_sum
+	simulate other teams based on ADP
+	compute projected team stats, compare z_sums
+	determine what a "replacement-level" player is
+* Visual - plot results of each strategy * 
+Build player tiers, draft-day document based on results
+	exclude known keepers

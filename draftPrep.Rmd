@@ -1,0 +1,62 @@
+---
+title: "2019 Draft Prep"
+author: "Tom Kain"
+date: "March 19, 2019"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Intro
+Rather than loosely apply fantasy baseball expert rankings for traditionally-scored roto leagues, I wanted to take a stab at developing my own rankings based on several factors:
+
+1. league-custom categories used for H2H scoring
+2. quality projection data with realistic expectations for variance
+3. my preferences for draft strategy and team management throughout the year
+
+To that end, the below document is a walk-through of the various research completed in other R Markdown files found in this repo. 
+
+### Scoring Categories
+Here are the statistical categories which are used in our H2H categories, 12 team fantasy baseball league. Both team and category record are tracked throughout the year. 
+
+##### Batters
+(@) Runs (R)
+(@) Hits (H)
+(@) Home runs (HR)
+(@) Runs Batted In (RBI)
+(@) Stolen Bases (SB)
+(@) Walks (BB)
+(@) Strikeouts (SO/K)
+(@) On-Base Percentage (OBP)
+(@) On-Base Plus Slugging (OPS)
+(@) \*Errors (E)
+
+##### Pitchers
+(@) Saves (SV)
+(@) Strikeouts (SO/K)
+(@) Holds (HLD)
+(@) Earned Run Average (ERA)
+(@) Walks+Hits per Inning (WHIP)
+(@) \*No Hitters (NH)
+(@) \*Quality Starts (QS)
+(@) \*Blown Saves (BS)
+(@) \*Complete Games (CG)
+(@) \*Shut outs (SHO)
+
+Categories marked with an asterisk (\*) are not inluded in projection data. 
+
+### Projection Data
+Based on prior personal success and their construction is the average of two separate projections, I've downloaded the latest Fangraphs Depth Chart preseason projections. This data is joined with Yahoo position eligibility data, since this is our league's host. 
+
+### Personal Strategy
+After playing fantasy baseball for a few seasons and reading up from various experts (CBS Sports, The Athletic, etc), here are a few takeaways and preferences I prefer to take to heart at draft time as well as during the season.
+
+(@) Batter projections tend to be more accurate than pitchers
+(@) I tend to ride the waiver wire for starting pitching to take advantage of two-start weeks in an effort to find quality starts
+(@) Since more batting categories are projected than pitching categories, I tend to put more emphasis on getting hitters early in drafts
