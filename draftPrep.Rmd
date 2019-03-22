@@ -30,30 +30,30 @@ To that end, the below document is a walk-through of the various research comple
 Here are the statistical categories which are used in our H2H categories, 12 team fantasy baseball league. Both team and category record are tracked throughout the year. 
 
 ##### Batters
-(@) Runs (R)
-(@) Hits (H)
-(@) Home runs (HR)
-(@) Runs Batted In (RBI)
-(@) Stolen Bases (SB)
-(@) Walks (BB)
-(@) Strikeouts (SO/K)
-(@) On-Base Percentage (OBP)
-(@) On-Base Plus Slugging (OPS)
-(@) \*Errors (E)
+- Runs (R)
+- Hits (H)
+- Home runs (HR)
+- Runs Batted In (RBI)
+- Stolen Bases (SB)
+- Walks (BB)
+- Strikeouts (SO/K)
+- On-Base Percentage (OBP)
+- On-Base Plus Slugging (OPS)
+- \*Errors (E)
 
 ##### Pitchers
-(@) Saves (SV)
-(@) Strikeouts (SO/K)
-(@) Holds (HLD)
-(@) Earned Run Average (ERA)
-(@) Walks+Hits per Inning (WHIP)
-(@) \*No Hitters (NH)
-(@) \*Quality Starts (QS)
-(@) \*Blown Saves (BS)
-(@) \*Complete Games (CG)
-(@) \*Shut outs (SHO)
+- Saves (SV)
+- Strikeouts (SO/K)
+- Holds (HLD)
+- Earned Run Average (ERA)
+- Walks+Hits per Inning (WHIP)
+- \*No Hitters (NH)
+- \*Quality Starts (QS)
+- \*Blown Saves (BS)
+- \*Complete Games (CG)
+- \*Shut outs (SHO)
 
-Categories marked with an asterisk (\*) are not inluded in projection data. 
+*Categories marked with an asterisk (\*) are not inluded in projection data.*
 
 ### Projection Data
 Based on prior personal success and their construction is the average of two separate projections, I've downloaded the latest Fangraphs Depth Chart preseason projections. This data is joined with Yahoo position eligibility data, since this is our league's host. 
@@ -61,78 +61,74 @@ Based on prior personal success and their construction is the average of two sep
 ### Personal Strategy
 After playing fantasy baseball for a few seasons and reading up from various experts (CBS Sports, The Athletic, etc), here are a few takeaways and preferences I prefer to take to heart at draft time as well as during the season.
 
-(@) Batter projections tend to be more accurate than pitchers
-(@) I tend to ride the waiver wire for starting pitching to take advantage of two-start weeks in an effort to find quality starts
-(@) Since more batting categories are projected than pitching categories, I tend to put more emphasis on getting hitters early in drafts
+1. Batter projections tend to be more accurate than pitchers
+2. I tend to ride the waiver wire for starting pitching to take advantage of two-start weeks in an effort to find quality starts
+3. Since more batting categories are projected than pitching categories, I tend to put more emphasis on getting hitters early in drafts
 
 # Data Set
 ```{r importFangraphs, include=FALSE}
 fangraphs_pitchers <- "data/fangraphs_pitchers.Rds"
 fangraphs_batters <- "data/fangraphs_batters.Rds"
-pitchers_file <- "data/depthChartProjections_pitchers_20190308.csv"
-batters_file <- "data/depthChartProjections_batters_20190308.csv"
+pitchers_file <- "data/depthChartProjections_pitchers_20190321.csv"
+batters_file <- "data/depthChartProjections_batters_20190321.csv"
 
-if (file.exists(fangraphs_pitchers) && file.exists(fangraphs_batters)) {
-  pitchers <- readRDS(fangraphs_pitchers)
-  batters <- readRDS(fangraphs_batters)
-} else {
-  if (!file.exists(pitchers_file) || !file.exists(batters_file)) {
+if (!file.exists(pitchers_file) || !file.exists(batters_file)) {
   stop("Couldn't find fangraphs export data in the data folder")
 }
 
-  pitchers <- pitchers_file %>%
-    read_csv() %>%
-    unique() %>%
-    select(playerid, 
-           Name, 
-           Team,
-           ADP,
-           IP,
-           SV:ERA,
-           SO,
-           WHIP) %>%
-    mutate(type = "pitcher")
-  
-  batters <- batters_file %>%
-    read_csv() %>%
-    unique() %>%
-    select(playerid,
-           Name,
-           Team,
-           ADP,
-           PA,
-           H,
-           HR:SO,
-           SB,
-           OBP,
-           OPS) %>%
-    mutate(type = "batter")
-  
-  fangraphs <- pitchers %>% 
-    bind_rows(batters)
-  
-  fangraphs$Name[fangraphs$Name == 'Enrique Hernandez'] <- "Kike Hernandez"
-  fangraphs$Name[fangraphs$Name == 'Cedric Mullins II'] <- "Cedric Mullins"
-  fangraphs$Name[fangraphs$Name == 'Michael Soroka'] <- "Mike Soroka"
-  fangraphs$Name[fangraphs$Name == 'Nathaniel Lowe'] <- "Nate Lowe"
-  fangraphs$Name[fangraphs$Name == 'Nathan Karns'] <- "Nate Karns"
-  fangraphs$Name[fangraphs$Name == 'Zach Britton'] <- "Zack Britton"
-  fangraphs$Name[fangraphs$Name == 'Joshua James'] <- "Josh James"
-  fangraphs$Name[fangraphs$Name == 'D.J. Stewart'] <- "DJ Stewart"
-  
-  batters <- fangraphs %>%
-    filter(type="batter") %>%
-    select(-type)
-  
-  pitchers <- fangraphs %>%
-    filter(type="pitcher") %>%
-    select(-type)
-  
-  batters %>% saveRDS(fangraphs_batters)
-  pitchers %>% saveRDS(fangraphs_pitchers)
-}
+pitchers <- 
+  pitchers_file %>%
+  read_csv() %>%
+  unique() %>% 
+  mutate(type = "pitcher")
 
-rm(c(fangraphs_pitchers, fangraphs_batters, pitchers_file, batters_file, fangraphs))
+batters <- batters_file %>%
+  read_csv() %>%
+  unique() %>%
+  mutate(type = "batter")
+
+fangraphs <- pitchers %>% 
+  bind_rows(batters)
+
+fangraphs$Name[fangraphs$Name == 'Enrique Hernandez'] <- "Kike Hernandez"
+fangraphs$Name[fangraphs$Name == 'Cedric Mullins II'] <- "Cedric Mullins"
+fangraphs$Name[fangraphs$Name == 'Michael Soroka'] <- "Mike Soroka"
+fangraphs$Name[fangraphs$Name == 'Nathaniel Lowe'] <- "Nate Lowe"
+fangraphs$Name[fangraphs$Name == 'Nathan Karns'] <- "Nate Karns"
+fangraphs$Name[fangraphs$Name == 'Zach Britton'] <- "Zack Britton"
+fangraphs$Name[fangraphs$Name == 'Joshua James'] <- "Josh James"
+fangraphs$Name[fangraphs$Name == 'D.J. Stewart'] <- "DJ Stewart"
+
+batters <- fangraphs %>%
+  filter(type=="batter") %>%
+  select(playerid,
+         Name,
+         Team,
+         ADP,
+         PA,
+         H,
+         HR:SO,
+         SB,
+         OBP,
+         OPS)
+
+pitchers <- fangraphs %>%
+  filter(type=="pitcher") %>%
+  select(playerid,
+         Name,
+         Team,
+         ADP,
+         IP,
+         SV:ERA,
+         SO,
+         WHIP)
+
+batters %>% saveRDS(fangraphs_batters)
+pitchers %>% saveRDS(fangraphs_pitchers)
+
+suppressWarnings(
+  rm(fangraphs_pitchers, fangraphs_batters, pitchers_file, batters_file) 
+)
 ```
 
 ```{r importYahoo, include=FALSE}
@@ -167,3 +163,20 @@ if (file.exists(yahoo_file)) {
 rm(yahoo_file)
 ```
 
+```{r}
+players_master <- fangraphs %>%
+  full_join(yahoo_players, by = c("Name" = "name.full")) %>%
+  filter(!is.na(ADP))
+
+players_master %>% 
+  mutate(orphan = is.na(display_position) & is.na(positions)) %>%
+  filter(orphan) -> orphans
+
+if (!is.na(orphans) && nrow(orphans) > 0) {
+  stop(paste0("Join resulted in ",nrow(orphans)," orphaned players"))
+}
+
+orphans %>% select(Name)
+fangraphs %>% filter(grepl("Genesis",Name))
+yahoo_players %>% filter(grepl("Cabrera",name.full))
+```
