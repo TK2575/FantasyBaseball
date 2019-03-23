@@ -2,8 +2,72 @@ library(shiny)
 library(plotly)
 library(tidyverse)
 
+source("chooser.R")
+
 main_df <- readRDS("../data/draft_dataset.Rds")
-positions_df <- readRDS("../data/positions_ranked_with_keepers.Rds")
+positions_df <- main_df %>%
+  mutate(C = grepl("C", display_position)) %>%
+  mutate(`1B` = grepl("1B", positions)) %>%
+  mutate(`2B` = grepl("2B", positions)) %>%
+  mutate(SS = grepl("SS", positions)) %>%
+  mutate(`3B` = grepl("3B", positions)) %>%
+  mutate(LF = grepl("LF", positions)) %>% 
+  mutate(CF = grepl("CF", positions)) %>% 
+  mutate(RF = grepl("RF", positions)) %>%
+  mutate(SP = grepl("SP", positions)) %>%
+  mutate(RP = grepl("RP", positions)) 
+
+C <- positions_df %>%
+  filter(C) %>%
+  mutate(position = "C")
+
+`1B` <- positions_df %>%
+  filter(`1B`) %>%
+  mutate(position = "1B")
+
+`2B` <- positions_df %>%
+  filter(`2B`) %>%
+  mutate(position = "2B")
+
+`3B` <- positions_df %>%
+  filter(`3B`) %>%
+  mutate(position = "3B")
+
+SS <- positions_df %>%
+  filter(SS) %>%
+  mutate(position = "SS")
+
+LF <- positions_df %>%
+  filter(LF) %>%
+  mutate(position = "LF")
+
+CF <- positions_df %>%
+  filter(CF) %>%
+  mutate(position = "CF")
+
+RF <- positions_df %>%
+  filter(RF) %>%
+  mutate(position = "RF")
+
+SP <- positions_df %>% 
+  filter(SP) %>% 
+  mutate(position = "SP")
+
+RP <- positions_df %>% 
+  filter(RP) %>% 
+  mutate(position = "RP")
+
+positions_df_ex <- C %>%
+  bind_rows(`1B`) %>%
+  bind_rows(`2B`) %>%
+  bind_rows(`3B`) %>%
+  bind_rows(SS) %>%
+  bind_rows(LF) %>% 
+  bind_rows(CF) %>% 
+  bind_rows(RF) %>% 
+  bind_rows(SP) %>%
+  bind_rows(RP) %>%
+  unique()
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -14,6 +78,8 @@ ui <- fluidPage(
    # Sidebar
    sidebarLayout(
       sidebarPanel(
+        chooserInput("chooser", "Available Players", "Drafted Players",
+                     main_df$Name, c(), size = 25, multiple = TRUE)
       ),
       
       # Main Panel
@@ -27,10 +93,21 @@ ui <- fluidPage(
 )
 
 # Server
-server <- function(input, output) {
+server <- function(input, output, session) {
+  
+  table_df <- reactive({
+    main_df %>%
+      select(-display_position) %>%
+      filter(!Name %in% input$chooser)
+  })
+  
+  plot_df <- reactive({
+    positions_df_ex %>%
+      filter(!Name %in% input$chooser)
+  })
    
-   output$plot <- renderPlotly({
-      positions_df %>%
+  output$plot <- renderPlotly({
+      plot_df() %>%
        group_by(round, position) %>%
        summarize(low = min(z_sum),
                  mid = median(z_sum) %>% round(2),
@@ -47,7 +124,7 @@ server <- function(input, output) {
    })
    
    output$table <- renderDataTable({
-     main_df
+     table_df()
    })
 }
 

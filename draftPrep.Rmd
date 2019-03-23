@@ -448,7 +448,6 @@ ggplotly(ptk)
 Below is a plot of z_score by round so I can identify in which rounds to target specific positions, particularly once we pass to below a z_score of 10. 
 ```{r echo=FALSE}
 positions_ranked_with_keepers %>%
-positions_ranked_with_keepers %>%
   filter(!keeper,
          ADP <=300) %>%
   group_by(round, position) %>%
@@ -472,7 +471,7 @@ Here's the data set with which I'll print a little cheat sheet (or interactive a
 
 ```{r echo=FALSE}
 batters_ranked %>%
-  select(Name, z_rank, z_sum, ADP, positions) -> batters_draft
+  select(Name, z_rank, z_sum, ADP, positions, display_position) -> batters_draft
   
 batters_draft %>%
   mutate(rn = row_number()) %>% 
@@ -492,7 +491,7 @@ batters_draft %>%
   slice(-rows_drop) -> batters_draft
 
 pitchers_ranked %>%
-  select(Name, z_rank, z_sum, ADP, positions) -> pitchers_draft
+  select(Name, z_rank, z_sum, ADP, positions, display_position) -> pitchers_draft
   
 pitchers_draft %>%
   mutate(rn = row_number()) %>%
@@ -520,7 +519,12 @@ pitchers_draft %>%
   filter(!keeper) %>%
   arrange(z_sum %>% desc) %>%
   mutate(z_rank = row_number()) %>%
-  select(z_rank, Name, z_sum, round, ADP, positions) -> draft_df
+  select(z_rank, Name, z_sum, round, ADP, positions, display_position) -> draft_df
 
 draft_df %>% saveRDS("data/draft_dataset.Rds")
+
+draft_df %>%
+  select(-display_position) %>%
+  head(25) %>%
+  kable()
 ```
