@@ -67,7 +67,8 @@ positions_df_ex <- C %>%
   bind_rows(RF) %>% 
   bind_rows(SP) %>%
   bind_rows(RP) %>%
-  unique()
+  unique() %>%
+  select(-(positions:RP))
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -78,6 +79,7 @@ ui <- fluidPage(
    # Sidebar
    sidebarLayout(
       sidebarPanel(
+        # many thanks to rstudio/shiny-examples/036-custom-input-control/
         chooserInput("chooser", "Available Players", "Drafted Players",
                      main_df$Name, c(), size = 25, multiple = TRUE)
       ),
@@ -95,20 +97,24 @@ ui <- fluidPage(
 # Server
 server <- function(input, output, session) {
   
+  output$selection <- renderPrint(
+    input$chooser
+  )
+  
   table_df <- reactive({
     main_df %>%
       select(-display_position) %>%
-      filter(!Name %in% input$chooser)
+      filter(!Name %in% input$chooser$right)
   })
   
   plot_df <- reactive({
     positions_df_ex %>%
-      filter(!Name %in% input$chooser)
+      filter(!Name %in% input$chooser$right)
   })
    
   output$plot <- renderPlotly({
       plot_df() %>%
-       group_by(round, position) %>%
+       group_by(position, round) %>%
        summarize(low = min(z_sum),
                  mid = median(z_sum) %>% round(2),
                  high = max(z_sum),
