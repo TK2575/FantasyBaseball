@@ -189,11 +189,11 @@ Here's a look at a few rows from each starting data set.
 ```{r echo=FALSE}
 batters <- players_master %>%
   filter(type == "batter") %>%
-  select(type, Name, Team, ADP, 
-         PA, R, H, HR, RBI, SB, BB, SO, OBP, OPS)
+  select(Name, Team, ADP, type, display_position, positions,
+         PA, R, H, HR, RBI, SB, BB, SO, OBP, OPS,)
 
 batters %>%
-  select(-type) %>%
+  select(-(type:positions)) %>%
   head()  %>%
   kable()
 ```
@@ -202,11 +202,11 @@ batters %>%
 ```{r echo=FALSE}
 pitchers <- players_master %>%
   filter(type == "pitcher") %>%
-  select(type, Name, Team, ADP,
+  select(Name, Team, ADP, type, display_position, positions,
          IP, SV, SO, HLD, ERA, WHIP)
 
 pitchers %>%
-  select(-type) %>%
+  select(-(type:positions)) %>%
   head()  %>%
   kable()
 ```
@@ -305,3 +305,144 @@ z_sums %>%
 ```
 
 J.T. Realmuto is going before the end of the third round yet by my ranking he shouldn't be going before the eleventh. However, I bet most catchers available to draft would have a negative z_sum, meaning they could be negating the benefit of taking higher z_sums from other positions with less bad options later in the draft. Let's confirm that.
+
+```{r include=FALSE}
+
+z_sums %>%
+  filter(type == "batter") %>%
+  select(Name, z_rank) %>%
+  full_join(batters, by = "Name") %>% 
+  mutate(C = grepl("C", display_position)) %>%
+  mutate(`1B` = grepl("1B", positions)) %>%
+  mutate(`2B` = grepl("2B", positions)) %>%
+  mutate(SS = grepl("SS", positions)) %>%
+  mutate(`3B` = grepl("3B", positions)) %>%
+  mutate(LF = grepl("LF", positions)) %>% 
+  mutate(CF = grepl("CF", positions)) %>% 
+  mutate(RF = grepl("RF", positions)) -> batters_ranked
+
+z_sums %>%
+  filter(type == "pitcher") %>%
+  select(Name, z_rank) %>%
+  full_join(pitchers, by = "Name") %>%
+  mutate(SP = grepl("SP", positions)) %>%
+  mutate(RP = grepl("RP", positions)) -> pitchers_ranked
+
+C <- batters_ranked %>%
+  filter(C) %>%
+  mutate(position = "C")
+
+`1B` <- batters_ranked %>%
+  filter(`1B`) %>%
+  mutate(position = "1B")
+
+`2B` <- batters_ranked %>%
+  filter(`2B`) %>%
+  mutate(position = "2B")
+
+`3B` <- batters_ranked %>%
+  filter(`3B`) %>%
+  mutate(position = "3B")
+
+SS <- batters_ranked %>%
+  filter(SS) %>%
+  mutate(position = "SS")
+
+LF <- batters_ranked %>%
+  filter(LF) %>%
+  mutate(position = "LF")
+
+CF <- batters_ranked %>%
+  filter(LF) %>%
+  mutate(position = "CF")
+
+RF <- batters_ranked %>%
+  filter(RF) %>%
+  mutate(position = "RF")
+
+SP <- pitchers_ranked %>% 
+  filter(SP) %>% 
+  mutate(position = "SP")
+
+RP <- pitchers_ranked %>% 
+  filter(RP) %>% 
+  mutate(position = "RP")
+
+pitcher_positions_ranked <- SP %>%
+  bind_rows(RP) %>%
+  select(Name, ADP, z_sum, position) %>%
+  unique()
+
+positions_ranked <- C %>%
+  bind_rows(`1B`) %>%
+	bind_rows(`2B`) %>%
+	bind_rows(`3B`) %>%
+	bind_rows(SS) %>%
+  bind_rows(LF) %>% 
+  bind_rows(CF) %>% 
+  bind_rows(RF) %>% 
+  select(Name, ADP, z_sum, position) %>% 
+  unique() %>%
+  bind_rows(pitcher_positions_ranked) %>%
+  arrange(z_sum %>% desc) %>%
+  mutate(round = ceiling(ADP/12),
+         z_rank = row_number(),
+         position = fct_relevel(position, "C","1B", "2B","3B","SS","LF","CF","RF","SP","RP"))
+
+positions_ranked %>%
+  filter(ADP <= 300,
+         !position %in% c("SP","RP")) %>%
+  ggplot(aes(x=position, y=z_sum)) +
+  geom_boxplot() +
+  geom_jitter(aes(text=Name, alpha=desc(round)), width = .2) +
+  geom_abline(slope=0, intercept = 0, linetype = "dotted") +
+  labs(x="Position",
+       y="Z_Points",
+       title="Batter value by position, top 300 drafted") -> pt
+
+ggplotly(pt)
+```
+
+This highlights how poor the catcher position is. The upper outliers at the position are roughly equivlanet to the median value of most other positions. If I don't get one of the top four catchers, I'll need to at least make up the 4 z_points somewhere else. That said, the projections indicate that I would do nearly as well with Yasmani Grandal or Buster Posey (rounds 13 and 10, respectively) as I would with the higher in demand J.T. Realmuto and Gary Sanchez (rounds 4 and 5 respectively). 
+
+# Draft Prep
+Armed with this information, here's what I need before the draft:
+1. Exclude known keepers from this list - no sense planning on a player being available if they won't be
+2. Add pitchers to the above plot so that I can...
+3. ...put together a basic plan of attack for the draft
+4. Generate a cheat sheet document to use for the draft
+
+```{r echo=FALSE}
+
+keepers <- c(
+  "Justin turner",
+  "Miles Mikolas",
+  "Whit Merrifield",
+  "Archie Bradley",
+  "Patrick Corbin",
+  "Matt Carpenter",
+  "Blake Treinen",
+  "Ronald Acuna Jr.",
+  "Blake Snell",
+  "Lorenzo Cain",
+  "Trevor Story",
+  "Andrew Benintendi",
+  "Mike Clevinger"
+)
+
+positions_ranked %>%
+  mutate(keeper = (Name %in% keepers)) -> positions_ranked_with_keepers
+
+positions_ranked_with_keepers %>%
+  filter(ADP <= 300,
+         !keeper) %>%
+  ggplot(aes(x=position, y=z_sum)) +
+  geom_boxplot() +
+  geom_jitter(aes(text=Name, alpha=desc(round)), width = .2) +
+  geom_abline(slope=0, intercept = 0, linetype = "dotted") +
+  labs(x="Position",
+       y="Z_Points",
+       title="Player value by position, top 300 drafted") -> ptk
+
+ggplotly(ptk)
+```
