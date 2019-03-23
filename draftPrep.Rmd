@@ -448,6 +448,7 @@ ggplotly(ptk)
 Below is a plot of z_score by round so I can identify in which rounds to target specific positions, particularly once we pass to below a z_score of 10. 
 ```{r echo=FALSE}
 positions_ranked_with_keepers %>%
+positions_ranked_with_keepers %>%
   filter(!keeper,
          ADP <=300) %>%
   group_by(round, position) %>%
@@ -514,14 +515,12 @@ rm(rows_drop, robertson_drop, jramirez_drop, reed_drop, smith_drop)
 
 pitchers_draft %>%
   bind_rows(batters_draft) %>%
-  mutate(round = ceiling(ADP/12)) %>%
+  mutate(round = ceiling(ADP/12),
+         keeper = (Name %in% keepers)) %>%
+  filter(!keeper) %>%
   arrange(z_sum %>% desc) %>%
   mutate(z_rank = row_number()) %>%
   select(z_rank, Name, z_sum, round, ADP, positions) -> draft_df
 
 draft_df %>% saveRDS("data/draft_dataset.Rds")
-
-draft_df %>%
-  head(25) %>%
-  kable()
 ```
