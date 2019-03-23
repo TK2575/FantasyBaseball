@@ -13,7 +13,10 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(stop_on_error = 2L)
 source("R/yahoo_api.R")
+source("R/z_scores.R")
 options(tidyverse.quiet=TRUE)
+library(knitr)
+library(plotly)
 library(tidyverse)
 ```
 
@@ -88,7 +91,8 @@ batters <- batters_file %>%
   mutate(type = "batter")
 
 fangraphs <- pitchers %>% 
-  bind_rows(batters)
+  bind_rows(batters) %>%
+  filter(ADP < 999)
 
 fangraphs$Name[fangraphs$Name == 'Enrique Hernandez'] <- "Kike Hernandez"
 fangraphs$Name[fangraphs$Name == 'Cedric Mullins II'] <- "Cedric Mullins"
@@ -98,6 +102,7 @@ fangraphs$Name[fangraphs$Name == 'Nathan Karns'] <- "Nate Karns"
 fangraphs$Name[fangraphs$Name == 'Zach Britton'] <- "Zack Britton"
 fangraphs$Name[fangraphs$Name == 'Joshua James'] <- "Josh James"
 fangraphs$Name[fangraphs$Name == 'D.J. Stewart'] <- "DJ Stewart"
+fangraphs$Name[fangraphs$Name == 'Daniel Poncedeleon'] <- "Daniel Ponce de Leon"
 
 batters <- fangraphs %>%
   filter(type=="batter") %>%
@@ -150,12 +155,13 @@ if (file.exists(yahoo_file)) {
   select(name.full, display_position, positions) %>%
   mutate(name.full = chartr("áéóíñú", "aeoinu", name.full))  -> yahoo_players
   
-  yahoo_players$name.full[yahoo_players$name.full == 'Daniel Vogelbach'] <- "Dan Vogelbach"
   yahoo_players$name.full[yahoo_players$name.full == 'Shohei Ohtani (Batter)'] <- "Shohei Ohtani"
   yahoo_players$name.full[yahoo_players$name.full == 'Shin-soo Choo'] <- "Shin-Soo Choo"
   yahoo_players$name.full[yahoo_players$name.full == 'Seunghwan Oh'] <- "Seung Hwan Oh"
   yahoo_players$name.full[yahoo_players$name.full == 'JT Riddle'] <- "J.T. Riddle"
   yahoo_players$name.full[yahoo_players$name.full == 'AJ Reed'] <- "A.J. Reed"
+  yahoo_players$name.full[yahoo_players$name.full == 'Dan Vogelbach'] <- "Daniel Vogelbach"
+  
   
   yahoo_players %>% 
     saveRDS(yahoo_file)
@@ -163,10 +169,11 @@ if (file.exists(yahoo_file)) {
 rm(yahoo_file)
 ```
 
-```{r}
+```{r include=FALSE}
 players_master <- fangraphs %>%
   full_join(yahoo_players, by = c("Name" = "name.full")) %>%
-  filter(!is.na(ADP))
+  filter(!is.na(ADP)) %>%
+  filter(ADP < 999)
 
 players_master %>% 
   mutate(orphan = is.na(display_position) & is.na(positions)) %>%
@@ -175,8 +182,126 @@ players_master %>%
 if (!is.na(orphans) && nrow(orphans) > 0) {
   stop(paste0("Join resulted in ",nrow(orphans)," orphaned players"))
 }
-
-orphans %>% select(Name)
-fangraphs %>% filter(grepl("Genesis",Name))
-yahoo_players %>% filter(grepl("Cabrera",name.full))
 ```
+Here's a look at a few rows from each starting data set.
+
+##### Batters
+```{r echo=FALSE}
+batters <- players_master %>%
+  filter(type == "batter") %>%
+  select(type, Name, Team, ADP, 
+         PA, R, H, HR, RBI, SB, BB, SO, OBP, OPS)
+
+batters %>%
+  select(-type) %>%
+  head()  %>%
+  kable()
+```
+
+##### Pitchers
+```{r echo=FALSE}
+pitchers <- players_master %>%
+  filter(type == "pitcher") %>%
+  select(type, Name, Team, ADP,
+         IP, SV, SO, HLD, ERA, WHIP)
+
+pitchers %>%
+  select(-type) %>%
+  head()  %>%
+  kable()
+```
+
+# Generate Rankings
+I need to evaluate each player with a single metric that takes into account his relative rank in each scoring category. To do this, I'll generate z-scores for each scoring category via normalization, then sum the z-scores up per player to rank them. For rate statistics (i.e. OBP), the z_scores are controlled for batter's plate appearances (PA) and pitcher's innings pitched (IP). Here are the same batters with their z_scores computed:
+
+```{r echo=FALSE}
+batters %>%
+  z_score_count(R) %>%
+  z_score_count(H) %>%
+  z_score_count(HR) %>%
+  z_score_count(RBI) %>%
+  z_score_count(SB) %>%
+  z_score_count(BB) %>%
+  z_score_count(SO, TRUE) %>%
+  z_score_rate(OBP, PA) %>%
+  z_score_rate(OPS, PA) %>%
+  mutate(
+    z_sum = pmap_dbl(
+      select(., starts_with("z_")), 
+      sum
+    )
+  ) -> batters
+
+batters %>%
+  head() %>%
+  select(Name, Team, ADP, 
+         z_H:z_sum) %>%
+  kable()
+```
+
+I experimented with some additional adjustment for pitchers since there are four categories for which I don't have projections (note to self for the future, take some time to develop Quality Start projections). For now, no additional adjustment - here are the same pitchers with their z_scores.
+
+```{r echo=FALSE}
+pitchers %>%
+  z_score_count(SV) %>%
+  z_score_count(SO) %>%
+  z_score_count(HLD) %>%
+  z_score_rate(ERA, IP, TRUE) %>%
+  z_score_rate(WHIP, IP, TRUE) %>%
+  mutate(
+    z_sum = pmap_dbl(
+      select(., starts_with("z_")), 
+      sum
+    )
+  ) -> pitchers
+
+pitchers %>%
+  head() %>%
+  select(Name, Team, ADP, 
+         z_SV:z_sum) %>%
+  kable()
+```
+
+Let's compare the z_sum scores with average draft position (ADP).
+
+```{r echo=FALSE}
+z_sums <- pitchers %>%
+  select(Name, type, ADP, z_sum)
+
+batters %>%
+  select(Name, type, ADP, z_sum) %>%
+  bind_rows(z_sums) %>%
+  arrange(desc(z_sum)) %>%
+  mutate(z_rank = row_number()) -> z_sums
+
+z_sums %>%
+  ggplot(aes(x=ADP,y=z_rank,color=type)) +
+  geom_point(aes(text=Name)) +
+  geom_abline(slope=-1) +
+  scale_y_reverse() -> p
+
+ggplotly(p)
+```
+
+Some observations from this plot:
+- Batters are in general weighed higher than pitchers since there are more categories with which to add to the z_sum
+- Andrew Miller-like relievers are valued higher than ADP due to their high inning total and low ratio stats (ERA, WHIP)
+- Ace starting pitchers and traditional closers are valued less than ADP despite their relative scarcity. 
+  - Aces are the players most affected by not adjusting the z_score weighting for pitchers
+  - Even with adjustment, tradtional closers have a lesser inning count nor have significant input in other categories to adjust their z_score very much
+  
+Thus far this is algining with my general strategy. These rankings value hitters highly, identify relievers to draft late, and leave it up to me to scrape for some starting pitchers to spring up over the course of the year. With this approach, I should be able to meaningfully attack most of the batting categories and a few of the pitching categories (i.e. ERA, WHIP, HLD), hopefully translating to a a weekly lead in categories. 
+
+### Position Scarcity
+
+What is not yet covered is batting lineup slots and offensive position scarcity. For example, catcher is traditionally very light on talent, but even the best offensive catcher is unlikely to crack the top 20. Here's a catcher that I happen to know is projected to be (one of) the best this year:
+```{r echo=FALSE}
+z_sums %>%
+  select(Name, z_rank) %>%
+  filter(grepl("Realmuto", Name)) %>%
+  inner_join(batters, by = "Name") %>%
+  select(Name, ADP, z_rank, z_sum) %>%
+  kable()
+```
+
+J.T. Realmuto is going before the end of the third round yet by my ranking he shouldn't be going before the eleventh. However, I bet most catchers available to draft would have a negative z_sum, meaning they could be negating the benefit of taking higher z_sums from other positions with less bad options later in the draft. Let's confirm that.
