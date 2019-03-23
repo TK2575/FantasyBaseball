@@ -408,12 +408,7 @@ ggplotly(pt)
 This highlights how poor the catcher position is. The upper outliers at the position are roughly equivlanet to the median value of most other positions. If I don't get one of the top four catchers, I'll need to at least make up the 4 z_points somewhere else. That said, the projections indicate that I would do nearly as well with Yasmani Grandal or Buster Posey (rounds 13 and 10, respectively) as I would with the higher in demand J.T. Realmuto and Gary Sanchez (rounds 4 and 5 respectively). 
 
 # Draft Prep
-Armed with this information, here's what I need before the draft:
-
-1. Exclude known keepers from this list - no sense planning on a player being available if they won't be
-2. Add pitchers to the above plot so that I can...
-3. ...put together a basic plan of attack for the draft
-4. Generate a cheat sheet document to use for the draft
+The above plot is reproduced below to exclude known keepers and include pitchers. 
 
 ```{r echo=FALSE}
 
@@ -450,68 +445,82 @@ positions_ranked_with_keepers %>%
 ggplotly(ptk)
 ```
 
+Below is a plot of z_score by round so I can identify in which rounds to target specific positions, particularly once we pass to below a z_score of 10. 
 ```{r echo=FALSE}
 positions_ranked_with_keepers %>%
   filter(!keeper,
          ADP <=300) %>%
-  arrange(round, position) %>%
-  mutate(round = as_factor(round)) %>%
-  mutate(round = fct_inseq(round, ordered = TRUE)) %>%
-  ggplot(aes(x=round,y=z_sum,alpha=desc(z_rank),size=z_sum,color=position)) +
-  geom_jitter(aes(text=Name)) +
+  group_by(round, position) %>%
+  summarize(low = min(z_sum),
+            mid = median(z_sum),
+            high = max(z_sum),
+            n = n()) %>%
+  arrange(round) %>%
+  ggplot(aes(y=mid, x=round, color=n)) +
+  geom_pointrange(aes(ymax = high,ymin = low)) +
+  labs(x="Round (ADP)", 
+        y="Z_Score") +
   facet_wrap(~ position) -> rv
-
+    
 ggplotly(rv)
 ```
 *Note, one of the excluded keepers is mine - SS Trevor Story, round 11*
 
-I'd like to put together a plan of attack where, for each round, I identify the kinds of players available at the highest projected scoring, perhaps in tiers of z_scores: >= 15, 10-15, 5-10, etc. Let's start with the upper tier:
 
-##### Elite Tier (z_score >= 15)
-
-```{r echo = FALSE}
-positions_ranked_with_keepers %>%
-  filter(z_sum >= 15, !keeper) %>%
-  select(Name, z_sum, ADP, round) %>%
-  unique() %>%
-  arrange(ADP) %>%
-  kable()
-```
-
-We should assume Trout, Betts, and Ramirez will go 1,2,3, or at least not make it to me at 11. However, according to the projection data, Bryce Harper & Juan Soto could be available, potentially worth getting at the rounds 1 & 2 turn. 
-
-##### Damn Good Tier (z_score between 10 and 15)
-
-```{r echo = FALSE}
-positions_ranked_with_keepers %>%
-  filter(between(z_sum,10,15), !keeper) %>%
-  ggplot(aes(position,z_sum,size=round,color=Name)) +
-  geom_jitter(aes(text=Name), width = .2) -> dgt
-
-ggplotly(dgt)
-
-positions_ranked_with_keepers %>%
-  filter(between(z_sum,10,15), !keeper) %>%
-  count(position) %>%
-  arrange(desc(n)) %>%
-  kable()
-```
-
-At the top of this tier are two first basemen (Votto, Rizzo) and two outfielders (Yelich, Martinez). Votto has been going late enough (round 6) that I can afford to wait, giving me some fallback options in the OF if Harper and Soto are not available first. Although Bregman and Judge are next up, I'm thinking Jose Altuve might be a good pick since 2B is relatively scarce compared to OF and 3B. 
-
-##### Pretty Good Tier
+Here's the data set with which I'll print a little cheat sheet (or interactive app?) for the draft.
 
 ```{r echo=FALSE}
-positions_ranked_with_keepers %>%
-  filter(between(z_sum,5,10), !keeper) %>%
-  ggplot(aes(position,z_sum,size=round,color=Name)) +
-  geom_jitter(aes(text=Name), width = .2) -> dgt
+batters_ranked %>%
+  select(Name, z_rank, z_sum, ADP, positions) -> batters_draft
+  
+batters_draft %>%
+  mutate(rn = row_number()) %>% 
+  filter(grepl("Robertson",Name)) %>%
+  select(rn) %>%
+  pull() -> robertson_drop
 
-ggplotly(dgt)
+batters_draft %>%
+  mutate(rn = row_number()) %>% 
+  filter(grepl("Jose Ramirez",Name)) %>%
+  select(rn) %>%
+  pull() -> jramirez_drop  
+  
+rows_drop <- c(robertson_drop[-1],jramirez_drop[-1])
 
-positions_ranked_with_keepers %>%
-  filter(between(z_sum,5,10), !keeper) %>%
-  count(position) %>%
-  arrange(desc(n)) %>%
+batters_draft %>%
+  slice(-rows_drop) -> batters_draft
+
+pitchers_ranked %>%
+  select(Name, z_rank, z_sum, ADP, positions) -> pitchers_draft
+  
+pitchers_draft %>%
+  mutate(rn = row_number()) %>%
+  filter(grepl("Cody Reed",Name)) %>%
+  select(rn) %>%
+  pull() -> reed_drop
+
+pitchers_draft %>%
+  mutate(rn = row_number()) %>%
+  filter(grepl("Will Smith",Name)) %>%
+  select(rn) %>%
+  pull() -> smith_drop
+
+rows_drop <- c(smith_drop[-1], reed_drop[-2])
+
+pitchers_draft %>%
+  slice(-rows_drop) -> pitchers_draft
+
+rm(rows_drop, robertson_drop, jramirez_drop, reed_drop, smith_drop)
+
+pitchers_draft %>%
+  bind_rows(batters_draft) %>%
+  mutate(round = ceiling(ADP/12)) %>%
+  select(z_rank, Name, z_sum, round, ADP, positions) %>%
+  arrange(z_rank) -> draft_df
+
+draft_df %>% saveRDS("data/draft_dataset.Rds")
+
+draft_df %>%
+  head(25) %>%
   kable()
 ```
