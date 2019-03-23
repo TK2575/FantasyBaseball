@@ -10,7 +10,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 knitr::opts_knit$set(stop_on_error = 2L)
 source("R/yahoo_api.R")
 source("R/z_scores.R")
@@ -284,6 +284,7 @@ ggplotly(p)
 ```
 
 Some observations from this plot:
+
 - Batters are in general weighed higher than pitchers since there are more categories with which to add to the z_sum
 - Andrew Miller-like relievers are valued higher than ADP due to their high inning total and low ratio stats (ERA, WHIP)
 - Ace starting pitchers and traditional closers are valued less than ADP despite their relative scarcity. 
@@ -306,7 +307,7 @@ z_sums %>%
 
 J.T. Realmuto is going before the end of the third round yet by my ranking he shouldn't be going before the eleventh. However, I bet most catchers available to draft would have a negative z_sum, meaning they could be negating the benefit of taking higher z_sums from other positions with less bad options later in the draft. Let's confirm that.
 
-```{r include=FALSE}
+```{r echo=FALSE}
 
 z_sums %>%
   filter(type == "batter") %>%
@@ -407,6 +408,7 @@ This highlights how poor the catcher position is. The upper outliers at the posi
 
 # Draft Prep
 Armed with this information, here's what I need before the draft:
+
 1. Exclude known keepers from this list - no sense planning on a player being available if they won't be
 2. Add pitchers to the above plot so that I can...
 3. ...put together a basic plan of attack for the draft
