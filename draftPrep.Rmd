@@ -73,8 +73,8 @@ After playing fantasy baseball for a few seasons and reading up from various exp
 ```{r importFangraphs, include=FALSE}
 fangraphs_pitchers <- "data/fangraphs_pitchers.Rds"
 fangraphs_batters <- "data/fangraphs_batters.Rds"
-pitchers_file <- "data/depthChartProjections_pitchers_20190321.csv"
-batters_file <- "data/depthChartProjections_batters_20190321.csv"
+pitchers_file <- "data/depthChartProjections_pitchers_20190323.csv"
+batters_file <- "data/depthChartProjections_batters_20190323.csv"
 
 if (!file.exists(pitchers_file) || !file.exists(batters_file)) {
   stop("Couldn't find fangraphs export data in the data folder")
@@ -515,8 +515,9 @@ rm(rows_drop, robertson_drop, jramirez_drop, reed_drop, smith_drop)
 pitchers_draft %>%
   bind_rows(batters_draft) %>%
   mutate(round = ceiling(ADP/12)) %>%
-  select(z_rank, Name, z_sum, round, ADP, positions) %>%
-  arrange(z_rank) -> draft_df
+  arrange(z_sum %>% desc) %>%
+  mutate(z_rank = row_number()) %>%
+  select(z_rank, Name, z_sum, round, ADP, positions) -> draft_df
 
 draft_df %>% saveRDS("data/draft_dataset.Rds")
 
