@@ -3,9 +3,9 @@ title: "2019 Draft Prep"
 author: "Tom Kain"
 date: "March 19, 2019"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 editor_options:
   chunk_output_type: console
 ---
@@ -450,6 +450,19 @@ positions_ranked_with_keepers %>%
 ggplotly(ptk)
 ```
 
+```{r echo=FALSE}
+positions_ranked_with_keepers %>%
+  filter(!keeper,
+         ADP <=300) %>%
+  arrange(round, position) %>%
+  mutate(round = as_factor(round)) %>%
+  mutate(round = fct_inseq(round, ordered = TRUE)) %>%
+  ggplot(aes(x=round,y=z_sum,alpha=desc(z_rank),size=z_sum,color=position)) +
+  geom_jitter(aes(text=Name)) +
+  facet_wrap(~ position) -> rv
+
+ggplotly(rv)
+```
 *Note, one of the excluded keepers is mine - SS Trevor Story, round 11*
 
 I'd like to put together a plan of attack where, for each round, I identify the kinds of players available at the highest projected scoring, perhaps in tiers of z_scores: >= 15, 10-15, 5-10, etc. Let's start with the upper tier:
@@ -458,7 +471,7 @@ I'd like to put together a plan of attack where, for each round, I identify the 
 
 ```{r echo = FALSE}
 positions_ranked_with_keepers %>%
-  filter(z_sum >= 15) %>%
+  filter(z_sum >= 15, !keeper) %>%
   select(Name, z_sum, ADP, round) %>%
   unique() %>%
   arrange(ADP) %>%
@@ -467,3 +480,38 @@ positions_ranked_with_keepers %>%
 
 We should assume Trout, Betts, and Ramirez will go 1,2,3, or at least not make it to me at 11. However, according to the projection data, Bryce Harper & Juan Soto could be available, potentially worth getting at the rounds 1 & 2 turn. 
 
+##### Damn Good Tier (z_score between 10 and 15)
+
+```{r echo = FALSE}
+positions_ranked_with_keepers %>%
+  filter(between(z_sum,10,15), !keeper) %>%
+  ggplot(aes(position,z_sum,size=round,color=Name)) +
+  geom_jitter(aes(text=Name), width = .2) -> dgt
+
+ggplotly(dgt)
+
+positions_ranked_with_keepers %>%
+  filter(between(z_sum,10,15), !keeper) %>%
+  count(position) %>%
+  arrange(desc(n)) %>%
+  kable()
+```
+
+At the top of this tier are two first basemen (Votto, Rizzo) and two outfielders (Yelich, Martinez). Votto has been going late enough (round 6) that I can afford to wait, giving me some fallback options in the OF if Harper and Soto are not available first. Although Bregman and Judge are next up, I'm thinking Jose Altuve might be a good pick since 2B is relatively scarce compared to OF and 3B. 
+
+##### Pretty Good Tier
+
+```{r echo=FALSE}
+positions_ranked_with_keepers %>%
+  filter(between(z_sum,5,10), !keeper) %>%
+  ggplot(aes(position,z_sum,size=round,color=Name)) +
+  geom_jitter(aes(text=Name), width = .2) -> dgt
+
+ggplotly(dgt)
+
+positions_ranked_with_keepers %>%
+  filter(between(z_sum,5,10), !keeper) %>%
+  count(position) %>%
+  arrange(desc(n)) %>%
+  kable()
+```
