@@ -3,6 +3,7 @@ title: "2019 Draft Prep"
 author: "Tom Kain"
 date: "March 19, 2019"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 editor_options:
@@ -354,7 +355,7 @@ LF <- batters_ranked %>%
   mutate(position = "LF")
 
 CF <- batters_ranked %>%
-  filter(LF) %>%
+  filter(CF) %>%
   mutate(position = "CF")
 
 RF <- batters_ranked %>%
@@ -417,7 +418,7 @@ Armed with this information, here's what I need before the draft:
 ```{r echo=FALSE}
 
 keepers <- c(
-  "Justin turner",
+  "Justin Turner",
   "Miles Mikolas",
   "Whit Merrifield",
   "Archie Bradley",
@@ -444,7 +445,25 @@ positions_ranked_with_keepers %>%
   geom_abline(slope=0, intercept = 0, linetype = "dotted") +
   labs(x="Position",
        y="Z_Points",
-       title="Player value by position, top 300 drafted") -> ptk
+       title="Player value by position, top 300 drafted, keepers excluded ") -> ptk
 
 ggplotly(ptk)
 ```
+
+*Note, one of the excluded keepers is mine - SS Trevor Story, round 11*
+
+I'd like to put together a plan of attack where, for each round, I identify the kinds of players available at the highest projected scoring, perhaps in tiers of z_scores: >= 15, 10-15, 5-10, etc. Let's start with the upper tier:
+
+##### Elite Tier (z_score >= 15)
+
+```{r echo = FALSE}
+positions_ranked_with_keepers %>%
+  filter(z_sum >= 15) %>%
+  select(Name, z_sum, ADP, round) %>%
+  unique() %>%
+  arrange(ADP) %>%
+  kable()
+```
+
+We should assume Trout, Betts, and Ramirez will go 1,2,3, or at least not make it to me at 11. However, according to the projection data, Bryce Harper & Juan Soto could be available, potentially worth getting at the rounds 1 & 2 turn. 
+
