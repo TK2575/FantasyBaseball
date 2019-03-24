@@ -1,10 +1,17 @@
 library(shiny)
+library(shinythemes)
 library(plotly)
 library(tidyverse)
 
 source("chooser.R")
 
 main_df <- readRDS("../data/draft_dataset.Rds")
+
+players <- main_df %>%
+  arrange(ADP) %>%
+  select(Name) %>%
+  pull()
+
 positions_df <- main_df %>%
   mutate(C = grepl("C", display_position)) %>%
   mutate(`1B` = grepl("1B", positions)) %>%
@@ -72,6 +79,8 @@ positions_df_ex <- C %>%
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
+  
+  theme = shinytheme("cyborg"),
    
    # Application title
    titlePanel("Tom's Draft Cheat Sheet"),
@@ -81,7 +90,7 @@ ui <- fluidPage(
       sidebarPanel(
         # many thanks to rstudio/shiny-examples/036-custom-input-control/
         chooserInput("chooser", "Available Players", "Drafted Players",
-                     main_df$Name, c(), size = 25, multiple = TRUE)
+                     players, c(), size = 25, multiple = TRUE)
       ),
       
       # Main Panel
