@@ -1,0 +1,64 @@
+---
+title: "Draft Results"
+author: "Tom Kain"
+date: "March 24, 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+knitr::opts_knit$set(stop_on_error = 2L)
+source("R/yahoo_api.R")
+source("R/z_scores.R")
+options(tidyverse.quiet=TRUE)
+library(knitr)
+library(janitor)
+library(tidyverse)
+```
+
+# Data Set
+Put together the data set:
+1. Player
+2. Position
+3. Team
+4. Pick
+5. isKeeper
+
+```{r}
+keepers <- c(
+  "Justin Turner",
+  "Miles Mikolas",
+  "Whit Merrifield",
+  "Archie Bradley",
+  "Patrick Corbin",
+  "Matt Carpenter",
+  "Blake Treinen",
+  "Ronald Acuna Jr.",
+  "Blake Snell",
+  "Lorenzo Cain",
+  "Trevor Story",
+  "Andrew Benintendi",
+  "Mike Clevinger"
+)
+
+draft_results <- read_tsv("data/draftResults.tsv") %>%  
+  clean_names() %>% 
+  select(-mlb_team) %>%
+  mutate(player = chartr("áéóíñú", "aeoinu", player)) %>% 
+  mutate(keeper = (player %in% keepers)) 
+
+
+```
+
+# My team
+How did I do? 
+
+# Team Scores
+Compute z_scores based on my pre-draft rankings
+
+# z_Rank vs ADP
+See biggest stretches vs biggest value gets - what does that say about our league?
+
+# Consider preseason trades
