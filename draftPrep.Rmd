@@ -513,18 +513,19 @@ pitchers_draft %>%
 rm(rows_drop, robertson_drop, jramirez_drop, reed_drop, smith_drop)
 
 pitchers_draft %>%
-  bind_rows(batters_draft) %>%
+  bind_rows(batters_draft) %>% 
   mutate(round = ceiling(ADP/12),
-         keeper = (Name %in% keepers)) %>%
-  filter(!keeper) %>%
+         keeper = (Name %in% keepers)) %>% 
   arrange(z_sum %>% desc) %>%
   mutate(z_rank = row_number()) %>%
-  select(z_rank, Name, z_sum, round, ADP, positions, display_position) -> draft_df
+  select(z_rank, Name, z_sum, round, ADP, positions, display_position, keeper) -> draft_df
 
-draft_df %>% saveRDS("data/draft_dataset.Rds")
+draft_df %>% saveRDS("data/draft_dataset_with_keepers")
+
+draft_df %>% filter(!keeper) %>% saveRDS("data/draft_dataset.Rds")
 
 draft_df %>%
-  select(-display_position) %>%
+  select(-display_position, -keeper) %>%
   head(25) %>%
   kable()
 ```

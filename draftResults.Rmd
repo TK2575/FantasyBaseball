@@ -43,12 +43,18 @@ keepers <- c(
   "Mike Clevinger"
 )
 
-draft_results <- read_tsv("data/draftResults.tsv") %>%  
+results <- read_tsv("data/draftResults.tsv") %>%  
   clean_names() %>% 
-  select(-mlb_team) %>%
-  mutate(player = chartr("áéóíñú", "aeoinu", player)) %>% 
-  mutate(keeper = (player %in% keepers)) 
+  mutate(name = chartr("áéóíñú", "aeoinu", player)) %>% 
+  select(-mlb_team, -player) %>% 
+  mutate(keeper = (name %in% keepers)) 
 
+ranks <- readRDS("data/draft_dataset_with_keepers") %>% 
+  clean_names() %>% 
+  select(name, adp, z_sum, z_rank)
+
+results <- results %>%
+  left_join(ranks, by = "name")
 
 ```
 
@@ -62,3 +68,9 @@ Compute z_scores based on my pre-draft rankings
 See biggest stretches vs biggest value gets - what does that say about our league?
 
 # Consider preseason trades
+```{r}
+results %>% 
+  filter(grepl("Plouffe|Hebrew",team)) %>% 
+  arrange(team, z_sum %>% desc) %>%
+  View()
+```
