@@ -529,3 +529,11 @@ draft_df %>%
   head(25) %>%
   kable()
 ```
+
+# Post-Draft Thoughts
+Overall I'm happy with the rankings and interactive cheat sheet - both helped me make decisions during the draft to execute on my strategy that will hopefully return a good team this year. That said, there are some things I should revist next year, noted below. Over the course of the year, I should capture weekly performance so I can get a sense of variability. I should also review the end of year z_scores to see how my draft strategy, z_score computation, and other facets worked. 
+
+### Improvements
+
+##### Relative value between pitchers and batters
+Even though my strategy was to value pitchers less than batters, I was about halfway through the draft where the bottom of the barrel batters were clearly overvalued compared to remaining pitchers. As a result I probably picked too many batters rather than filtering batters out entirely. By end of year, I should have a good sense of what a "replacement" player value is, and reframe the z_scores relative to that. 
