@@ -1,0 +1,41 @@
+---
+title: "Trade Reviews"
+author: "Tom Kain"
+date: "April 5, 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+```
+
+Various trade scenarios to review during the year.
+
+## Early April
+Targeting a 3B, considering Chris's team as a trade partner since he has multiple high value 3B and needs 1B, RP. I'll need to
+
+1. Get the latest ROS projection data, calculate z_scores
+2. Get the players for both teams with their eligible positions
+3. Get draft results
+4. Join roster, projection, and draft result data, rescale z_scores appropriately
+5. Identify some equitable trade scenarios keeping as close to a net even z_score exchange
+
+```{r}
+source("R/yahoo_api.R")
+league_string <- paste0("388.l.",Sys.getenv("LEAGUE_KEY"))
+get_team_roster(league_string, 8) %>% 
+  clean_names() %>% 
+  mutate(owner = 'Tom') -> my_team
+get_team_roster(league_string, 3) %>% 
+  clean_names() %>% 
+  mutate(owner = 'Chris') -> chris_team
+
+my_team %>% 
+  bind_rows(chris_team) %>% 
+  select(owner, name_full, display_position) -> roster_players
+  
+```

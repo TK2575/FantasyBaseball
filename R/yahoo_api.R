@@ -43,6 +43,8 @@ get_json <- function(path) {
   
   url <- paste0(base, path, req_json)
   
+  print(url)
+  
   resp <- GET(url = url, config = config, ua)
   if (http_type(resp) != "application/json") {
     stop("API did not return json", call. = F)
@@ -107,10 +109,28 @@ get_players_page <- function(start) {
   count <- players_filtered$count
   
   lapply(players_filtered[1:count], function(x) x[[1]][[1]] %>% 
-           flatten() %>% 
+           rlang::flatten() %>% 
            as.data.frame(stringsAsFactors = F)) %>% 
     bind_rows() %>% 
     as_tibble() %>%
     select(-(14:16))
+}
+
+get_team_roster <- function(league_string, team_id) {
+  # TODO find, add team_name
+  path <- paste0("team/",league_string,".t.",team_id,"/roster/players")
+  
+  get_json(path) %>% 
+    content() -> players_resp
+  
+  players_resp$fantasy_content$team[[2]]$roster$`0`$players -> players_filtered
+  
+  count <- players_filtered$count
+  
+  lapply(players_filtered[1:count], function(x) x[[1]][[1]] %>% 
+           rlang::flatten() %>% 
+           as.data.frame(stringsAsFactors = F)) %>% 
+    bind_rows() %>% 
+    as_tibble() 
 }
 
