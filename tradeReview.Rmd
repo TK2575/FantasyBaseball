@@ -16,7 +16,7 @@ library(janitor)
 Various trade scenarios to review during the year.
 
 ## Early April
-Targeting a 3B, considering Chris's team as a trade partner since he has multiple high value 3B and needs 1B, RP. I'll need to
+Targeting a 3B, considering Chris's team as a trade partner since he has multiple high value 3B and needs 1B, RP. I'll need to...
 
 1. Get the latest ROS projection data, calculate z_scores
 2. Get the players for both teams with their eligible positions
@@ -24,18 +24,83 @@ Targeting a 3B, considering Chris's team as a trade partner since he has multipl
 4. Join roster, projection, and draft result data, rescale z_scores appropriately
 5. Identify some equitable trade scenarios keeping as close to a net even z_score exchange
 
+#### Latest ROS Projection data, calculate z_scores
+```{r}
+source("R/z_scores.R")
+proj_batter_raw <- read_csv("data/depthChartProjections_ros_batters_20190405.csv") 
+proj_pitcher_raw <- read_csv("data/depthChartProjections_ros_pitchers_20190405.csv") 
+  
+
+proj_batter_raw %>%
+  z_score_count(R) %>%
+  z_score_count(H) %>%
+  z_score_count(HR) %>%
+  z_score_count(RBI) %>%
+  z_score_count(SB) %>%
+  z_score_count(BB) %>%
+  z_score_count(SO, TRUE) %>%
+  z_score_rate(OBP, PA) %>%
+  z_score_rate(OPS, PA) %>%
+  mutate(
+    z_sum = pmap_dbl(
+      select(., starts_with("z_")), 
+      sum
+    ),
+    type = "batter") %>% 
+  select(Name, type, z_sum) -> proj_batter
+
+proj_pitcher_raw %>%
+  z_score_count(SV) %>%
+  z_score_count(SO) %>%
+  z_score_count(HLD) %>%
+  z_score_rate(ERA, IP, TRUE) %>%
+  z_score_rate(WHIP, IP, TRUE) %>%
+  mutate(
+    z_sum = pmap_dbl(
+      select(., starts_with("z_")), 
+      sum
+    ),
+    type = "pitcher") %>% 
+  select(Name, type, z_sum) -> proj_pitcher
+
+```
+
+#### Fantasy team rosters
 ```{r}
 source("R/yahoo_api.R")
 league_string <- paste0("388.l.",Sys.getenv("LEAGUE_KEY"))
 get_team_roster(league_string, 8) %>% 
   clean_names() %>% 
-  mutate(owner = 'Tom') -> my_team
+  mutate(owner = 'Tom',
+         name_full = chartr("áéóíñú", "aeoinu", name_full)) -> my_team
 get_team_roster(league_string, 3) %>% 
   clean_names() %>% 
-  mutate(owner = 'Chris') -> chris_team
+  mutate(owner = 'Chris',
+         name_full = chartr("áéóíñú", "aeoinu", name_full)) -> chris_team
 
 my_team %>% 
   bind_rows(chris_team) %>% 
   select(owner, name_full, display_position) -> roster_players
   
+```
+
+#### Draft results
+```{r}
+draft_results_raw <- read_tsv("data/draftResults.tsv") %>% 
+  clean_names()
+
+draft_results <- draft_results_raw %>% 
+  select(pick, player)
+```
+
+#### Join data
+```{r}
+projections <- proj_batter %>% 
+  bind_rows(proj_pitcher)
+
+roster_players %>% 
+  left_join(draft_results, by = c("name_full" = "player")) %>% 
+  left_join(projections, by = c("name_full" = "Name")) -> trade_df
+
+trade_df %>% saveRDS("data/tradeReview_20190405.Rds")
 ```
