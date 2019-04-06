@@ -69,18 +69,11 @@ proj_pitcher_raw %>%
 ```{r}
 source("R/yahoo_api.R")
 league_string <- paste0("388.l.",Sys.getenv("LEAGUE_KEY"))
-get_team_roster(league_string, 8) %>% 
-  clean_names() %>% 
-  mutate(owner = 'Tom',
-         name_full = chartr("áéóíñú", "aeoinu", name_full)) -> my_team
-get_team_roster(league_string, 3) %>% 
-  clean_names() %>% 
-  mutate(owner = 'Chris',
-         name_full = chartr("áéóíñú", "aeoinu", name_full)) -> chris_team
+get_team_rosters(league_string) -> rosters
 
-my_team %>% 
-  bind_rows(chris_team) %>% 
-  select(owner, name_full, display_position) -> roster_players
+rosters %>% 
+  filter(grepl('Tom|Christopher',manager)) %>% 
+  select(manager, name_full, display_position) -> roster_players
   
 ```
 
@@ -108,5 +101,5 @@ trade_df %>% saveRDS("data/tradeReview_20190405.Rds")
 trade_df %>% 
   mutate(z_sum = round(z_sum)) %>% 
   arrange(z_sum %>% desc, pick) %>% 
-  View()
+  write_csv("data/tradeReview_20190405.csv")
 ```

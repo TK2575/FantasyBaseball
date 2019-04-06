@@ -3,6 +3,8 @@ library(httpuv)
 library(jsonlite)
 library(magrittr)
 library(glue)
+library(dplyr)
+library(purrr)
 
 app_keys <- function() {
   key <- Sys.getenv('YAHOO_KEY')
@@ -123,6 +125,10 @@ get_team_roster <- function(league_string, team_id) {
   get_json(path) %>% 
     content() -> players_resp
   
+  players_resp$fantasy_content$team[[1]][[3]]$name -> team_name
+  
+  players_resp$fantasy_content$team[[1]][[20]]$managers[[1]]$manager$nickname -> manager
+  
   players_resp$fantasy_content$team[[2]]$roster$`0`$players -> players_filtered
   
   count <- players_filtered$count
@@ -131,6 +137,16 @@ get_team_roster <- function(league_string, team_id) {
            rlang::flatten() %>% 
            as.data.frame(stringsAsFactors = F)) %>% 
     bind_rows() %>% 
-    as_tibble() 
+    as_tibble() %>% 
+    mutate(team = team_name,
+           manager = manager)
+}
+
+get_team_rosters <- function(league_string, teams=12) {
+  1:teams %>% 
+    map(get_team_roster, league_string = league_string) %>% 
+    bind_rows() %>% 
+    clean_names() %>% 
+    mutate(name_full = chartr("áéóíñú", "aeoinu", name_full))
 }
 
