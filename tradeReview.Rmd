@@ -90,6 +90,7 @@ draft_results_raw <- read_tsv("data/draftResults.tsv") %>%
   clean_names()
 
 draft_results <- draft_results_raw %>% 
+  mutate(player = chartr("áéóíñú", "aeoinu", player)) %>% 
   select(pick, player)
 ```
 
@@ -103,4 +104,9 @@ roster_players %>%
   left_join(projections, by = c("name_full" = "Name")) -> trade_df
 
 trade_df %>% saveRDS("data/tradeReview_20190405.Rds")
+
+trade_df %>% 
+  mutate(z_sum = round(z_sum)) %>% 
+  arrange(z_sum %>% desc, pick) %>% 
+  View()
 ```
