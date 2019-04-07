@@ -11,6 +11,8 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(janitor)
+library(glue)
+library(plotly)
 ```
 
 Various trade scenarios to review during the year.
@@ -70,10 +72,6 @@ proj_pitcher_raw %>%
 source("R/yahoo_api.R")
 league_string <- paste0("388.l.",Sys.getenv("LEAGUE_KEY"))
 get_team_rosters(league_string) -> rosters
-
-rosters %>% 
-  filter(grepl('Tom|Christopher',manager)) %>% 
-  select(manager, name_full, display_position) -> roster_players
   
 ```
 
@@ -92,14 +90,72 @@ draft_results <- draft_results_raw %>%
 projections <- proj_batter %>% 
   bind_rows(proj_pitcher)
 
-roster_players %>% 
+projections$Name[projections$Name == 'Enrique Hernandez'] <- "Kike Hernandez"
+projections$Name[projections$Name == 'Peter Alonso'] <- "Pete Alonso"
+projections$Name[projections$Name == 'Joshua James'] <- "Josh James"
+
+rosters %>% 
   left_join(draft_results, by = c("name_full" = "player")) %>% 
-  left_join(projections, by = c("name_full" = "Name")) -> trade_df
+  full_join(projections, by = c("name_full" = "Name")) %>% 
+  mutate(team = if_else(is.na(team),"Free Agent",team),
+         team = fct_reorder(team, z_sum)) -> rosters_with_projections
 
-trade_df %>% saveRDS("data/tradeReview_20190405.Rds")
+rosters_with_projections %>% 
+  saveRDS("data/rosters_with_projections_20190405.Rds")
+```
 
-trade_df %>% 
+#### Evaluate trade options
+```{r}
+rosters_with_projections %>% 
+  filter(grepl('Tom|Christopher',manager)) %>% 
+  select(manager, name_full, display_position, pick, z_sum) %>%  
   mutate(z_sum = round(z_sum)) %>% 
   arrange(z_sum %>% desc, pick) %>% 
-  write_csv("data/tradeReview_20190405.csv")
+  View()
+```
+
+## Other research
+
+```{r}
+rosters_with_projections %>% 
+  mutate(z_sum = round(z_sum)) %>% 
+  ggplot(aes(x=team,y=z_sum,color=type)) +
+  geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type))) +
+  coord_flip() -> p
+
+ggplotly(p)
+
+rosters_with_projections %>% 
+  filter(!type == 'NA', !team == 'Free Agent') %>%
+  ggplot(aes(x=type,y=z_sum)) +
+  geom_boxplot()
+
+rosters_with_projections %>% 
+  filter(!type == 'NA', !team == 'Free Agent') %>%
+  group_by(type) %>% 
+  summarize(adj = median(z_sum)) -> z_sum_adj
+
+rosters_with_adj_projections <- rosters_with_projections %>% 
+  filter(!type == 'NA') %>% 
+  mutate(zar = if_else(type=="batter",
+                       z_sum-z_sum_adj$adj[z_sum_adj$type=="batter"],
+                       z_sum-z_sum_adj$adj[z_sum_adj$type=="pitcher"]))
+
+rosters_with_adj_projections %>% 
+  ggplot(aes(x=type,y=zar)) +
+  geom_boxplot()
+
+rosters_with_adj_projections %>% 
+  mutate(zar = round(zar)) %>% 
+  ggplot(aes(x=team,y=zar,color=type)) +
+  geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type))) +
+  coord_flip() -> z
+
+ggplotly(z)
+
+rosters_with_adj_projections %>% 
+  filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 0)) %>% 
+  arrange(zar %>% desc) %>% 
+  select(name_full, display_position, type, zar) %>% 
+  View()
 ```

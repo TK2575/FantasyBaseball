@@ -537,3 +537,6 @@ Overall I'm happy with the rankings and interactive cheat sheet - both helped me
 
 ##### Relative value between pitchers and batters
 Even though my strategy was to value pitchers less than batters, I was about halfway through the draft where the bottom of the barrel batters were clearly overvalued compared to remaining pitchers. As a result I probably picked too many batters rather than filtering batters out entirely. By end of year, I should have a good sense of what a "replacement" player value is, and reframe the z_scores relative to that. 
+
+##### Reductive power of z_scores
+It's possible I draft a number of high z_score players whose category makeup is very similar, leading to a smaller number of categories in which I'm competitive than I want. 
