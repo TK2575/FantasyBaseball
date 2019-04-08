@@ -70,9 +70,14 @@ proj_pitcher_raw %>%
 #### Fantasy team rosters
 ```{r}
 source("R/yahoo_api.R")
-league_string <- paste0("388.l.",Sys.getenv("LEAGUE_KEY"))
-get_team_rosters(league_string) -> rosters
-  
+league_key <- Sys.getenv("LEAGUE_KEY")
+
+if (identical("", league_key)) {
+  stop("LEAGUE_KEY isn't set as R Environment variable")
+} else {
+  league_string <- paste0("388.l.",Sys.getenv("LEAGUE_KEY"))
+  get_team_rosters(league_string) -> rosters  
+}
 ```
 
 #### Draft results
@@ -81,7 +86,7 @@ draft_results_raw <- read_tsv("data/draftResults.tsv") %>%
   clean_names()
 
 draft_results <- draft_results_raw %>% 
-  mutate(player = chartr("Ã¡Ã©Ã³Ã­Ã±Ãº", "aeoinu", player)) %>% 
+  mutate(player = chartr("áéóíñú", "aeoinu", player)) %>% 
   select(pick, player)
 ```
 

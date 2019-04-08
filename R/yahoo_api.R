@@ -119,7 +119,6 @@ get_players_page <- function(start) {
 }
 
 get_team_roster <- function(league_string, team_id) {
-  # TODO find, add team_name
   path <- paste0("team/",league_string,".t.",team_id,"/roster/players")
   
   get_json(path) %>% 
@@ -147,6 +146,6 @@ get_team_rosters <- function(league_string, teams=12) {
     map(get_team_roster, league_string = league_string) %>% 
     bind_rows() %>% 
     clean_names() %>% 
-    mutate(name_full = chartr("Ã¡Ã©Ã³Ã­Ã±Ãº", "aeoinu", name_full))
+    mutate(name_full = chartr("áéóíñú", "aeoinu", name_full))
 }
 
