@@ -1,7 +1,7 @@
 ---
 title: "Roster Review"
 author: "Tom Kain"
-date: "April 5, 2019"
+date: "April 9, 2019"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -13,9 +13,125 @@ library(tidyverse)
 library(janitor)
 library(glue)
 library(plotly)
+source("R/z_scores.R")
+source("R/yahoo_api.R")
 ```
 
 Various general roster reviews throughout the year.
 
 Long and short term views for addressing roster gaps, potential trade targets, free agents, etc.
 
+```{r}
+if (!file.exists("data/rosters_with_projections_20190409.Rds")) {
+  
+  get_team_rosters() -> rosters
+  
+  proj_batter <- add_z_scores_to_projections("data/depthChartProjections_ros_batters_20190409.csv","batter") 
+  proj_pitcher <- add_z_scores_to_projections("data/depthChartProjections_ros_pitchers_20190409.csv", "pitcher")
+
+  draft_results <- read_tsv("data/draftResults.tsv") %>% 
+    clean_names() %>% 
+    mutate(player = chartr("áéóíñú", "aeoinu", player)) %>% 
+    select(pick, player)
+  
+  projections <- proj_batter %>% 
+  bind_rows(proj_pitcher)
+
+  projections$Name[projections$Name == 'Enrique Hernandez'] <- "Kike Hernandez"
+  projections$Name[projections$Name == 'Peter Alonso'] <- "Pete Alonso"
+  projections$Name[projections$Name == 'Joshua James'] <- "Josh James"
+
+  rosters %>% 
+    left_join(draft_results, by = c("name_full" = "player")) %>% 
+    full_join(projections, by = c("name_full" = "Name")) %>% 
+    mutate(team = if_else(is.na(team),"Free Agent",team),
+           team = fct_reorder(team, z_sum)) -> rosters_with_projections
+
+  rosters_with_projections %>% 
+    saveRDS("data/rosters_with_projections_20190409.Rds")
+} else {
+  rosters_with_projections <- readRDS("data/rosters_with_projections_20190409.Rds")
+}
+
+```
+
+```{r}
+rosters_with_projections %>% 
+  mutate(z_sum = round(z_sum)) %>% 
+  ggplot(aes(x=team,y=z_sum,color=type)) +
+  geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type))) +
+  coord_flip() -> p
+
+ggplotly(p)
+
+rosters_with_projections %>% 
+  filter(!type == 'NA', !team == 'Free Agent') %>%
+  ggplot(aes(x=type,y=z_sum)) +
+  geom_boxplot()
+
+rosters_with_projections %>% 
+  filter(!type == 'NA', !team == 'Free Agent') %>%
+  group_by(type) %>% 
+  summarize(adj = median(z_sum)) -> z_sum_adj
+
+rosters_with_adj_projections <- rosters_with_projections %>% 
+  filter(!type == 'NA') %>% 
+  mutate(zar = if_else(type=="batter",
+                       z_sum-z_sum_adj$adj[z_sum_adj$type=="batter"],
+                       z_sum-z_sum_adj$adj[z_sum_adj$type=="pitcher"]))
+
+rosters_with_adj_projections %>% 
+  ggplot(aes(x=type,y=zar)) +
+  geom_boxplot()
+
+rosters_with_adj_projections %>% 
+  mutate(zar = round(zar)) %>% 
+  ggplot(aes(x=team,y=zar,color=type)) +
+  geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type))) +
+  coord_flip() -> z
+
+ggplotly(z)
+
+rosters_with_adj_projections %>% 
+  filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 0)) %>% 
+  arrange(zar %>% desc) %>% 
+  select(name_full, display_position, type, zar) %>% 
+  View()
+```
+
+```{r}
+rosters_with_adj_projections %>% 
+  filter(grepl('2B',display_position)) %>% 
+  ggplot(aes(x=team,y=zar,color=team)) +
+  geom_point(aes(text=name_full)) +
+  coord_flip() -> sb
+
+ggplotly(sb)
+
+rosters_with_adj_projections %>% 
+  filter(grepl('3B',display_position)) %>% 
+  ggplot(aes(x=team,y=zar,color=team)) +
+  geom_point(aes(text=name_full)) +
+  coord_flip() -> tb
+
+ggplotly(tb)
+
+rosters_with_adj_projections %>% 
+  mutate(third_base = grepl('3B',display_position),
+         second_base = grepl('2B',display_position),
+         position_plot_display = case_when(
+           third_base & second_base ~ 'Both',
+           third_base ~ '3B',
+           second_base ~ '2B',
+           TRUE ~ "Other")) %>% 
+  filter(!position_plot_display == 'Other') %>% 
+  mutate(team = fct_relevel(team, "Plouffe There It Is!")) %>% 
+  ggplot(aes(x=team,y=zar,color=position_plot_display)) +
+  geom_point(aes(text=name_full)) +
+  coord_flip() -> both
+
+ggplotly(both)
+
+# free agents?
+  
+```

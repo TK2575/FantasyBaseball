@@ -70,14 +70,7 @@ proj_pitcher_raw %>%
 #### Fantasy team rosters
 ```{r}
 source("R/yahoo_api.R")
-league_key <- Sys.getenv("LEAGUE_KEY")
-
-if (identical("", league_key)) {
-  stop("LEAGUE_KEY isn't set as R Environment variable")
-} else {
-  league_string <- paste0("388.l.",Sys.getenv("LEAGUE_KEY"))
-  get_team_rosters(league_string) -> rosters  
-}
+get_team_rosters() -> rosters
 ```
 
 #### Draft results
@@ -116,51 +109,5 @@ rosters_with_projections %>%
   select(manager, name_full, display_position, pick, z_sum) %>%  
   mutate(z_sum = round(z_sum)) %>% 
   arrange(z_sum %>% desc, pick) %>% 
-  View()
-```
-
-## Other research
-
-```{r}
-rosters_with_projections %>% 
-  mutate(z_sum = round(z_sum)) %>% 
-  ggplot(aes(x=team,y=z_sum,color=type)) +
-  geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type))) +
-  coord_flip() -> p
-
-ggplotly(p)
-
-rosters_with_projections %>% 
-  filter(!type == 'NA', !team == 'Free Agent') %>%
-  ggplot(aes(x=type,y=z_sum)) +
-  geom_boxplot()
-
-rosters_with_projections %>% 
-  filter(!type == 'NA', !team == 'Free Agent') %>%
-  group_by(type) %>% 
-  summarize(adj = median(z_sum)) -> z_sum_adj
-
-rosters_with_adj_projections <- rosters_with_projections %>% 
-  filter(!type == 'NA') %>% 
-  mutate(zar = if_else(type=="batter",
-                       z_sum-z_sum_adj$adj[z_sum_adj$type=="batter"],
-                       z_sum-z_sum_adj$adj[z_sum_adj$type=="pitcher"]))
-
-rosters_with_adj_projections %>% 
-  ggplot(aes(x=type,y=zar)) +
-  geom_boxplot()
-
-rosters_with_adj_projections %>% 
-  mutate(zar = round(zar)) %>% 
-  ggplot(aes(x=team,y=zar,color=type)) +
-  geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type))) +
-  coord_flip() -> z
-
-ggplotly(z)
-
-rosters_with_adj_projections %>% 
-  filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 0)) %>% 
-  arrange(zar %>% desc) %>% 
-  select(name_full, display_position, type, zar) %>% 
   View()
 ```

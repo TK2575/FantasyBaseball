@@ -118,8 +118,17 @@ get_players_page <- function(start) {
     select(-(14:16))
 }
 
-get_team_roster <- function(league_string, team_id) {
-  path <- paste0("team/",league_string,".t.",team_id,"/roster/players")
+league_string <- function(game_key=388) {
+  league_key <- Sys.getenv("LEAGUE_KEY")
+  if (identical("", league_key)) {
+    stop("LEAGUE_KEY isn't set as R Environment variable")
+  } else {
+    paste0(game_key,".l.",Sys.getenv("LEAGUE_KEY"))
+  }
+}
+
+get_team_roster <- function(team_id) {
+  path <- paste0("team/",league_string(),".t.",team_id,"/roster/players")
   
   get_json(path) %>% 
     content() -> players_resp
@@ -141,9 +150,9 @@ get_team_roster <- function(league_string, team_id) {
            manager = manager)
 }
 
-get_team_rosters <- function(league_string, teams=12) {
+get_team_rosters <- function(teams=12) {
   1:teams %>% 
-    map(get_team_roster, league_string = league_string) %>% 
+    map(get_team_roster) %>% 
     bind_rows() %>% 
     clean_names() %>% 
     mutate(name_full = chartr("áéóíñú", "aeoinu", name_full))
