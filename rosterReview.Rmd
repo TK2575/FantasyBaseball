@@ -1,0 +1,21 @@
+---
+title: "Roster Review"
+author: "Tom Kain"
+date: "April 5, 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+library(glue)
+library(plotly)
+```
+
+Various general roster reviews throughout the year.
+
+Long and short term views for addressing roster gaps, potential trade targets, free agents, etc.
+
