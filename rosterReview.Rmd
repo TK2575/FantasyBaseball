@@ -116,22 +116,41 @@ rosters_with_adj_projections %>%
 
 ggplotly(tb)
 
-rosters_with_adj_projections %>% 
+rosters_with_adj_projections %>%
+  filter(type == 'batter') %>% 
   mutate(third_base = grepl('3B',display_position),
          second_base = grepl('2B',display_position),
-         position_plot_display = case_when(
+         position = case_when(
            third_base & second_base ~ 'Both',
            third_base ~ '3B',
            second_base ~ '2B',
            TRUE ~ "Other")) %>% 
-  filter(!position_plot_display == 'Other') %>% 
   mutate(team = fct_relevel(team, "Plouffe There It Is!")) %>% 
-  ggplot(aes(x=team,y=zar,color=position_plot_display)) +
+  ggplot(aes(x=team,y=zar,color=position)) +
   geom_point(aes(text=name_full)) +
   coord_flip() -> both
 
 ggplotly(both)
 
-# free agents?
+rosters_with_adj_projections %>% 
+  filter(team == 'Free Agent', 
+         grepl('2B|3B',display_position)) %>% 
+  arrange(zar %>% desc) %>% 
+  head(30) %>% 
+  View()
+
+#free agents missing display position - not getting free agents from Yahoo
+
   
+```
+
+```{r}
+proj_batter %>% 
+  mutate(zar = if_else(type=="batter",
+                       z_sum-z_sum_adj$adj[z_sum_adj$type=="batter"],
+                       z_sum-z_sum_adj$adj[z_sum_adj$type=="pitcher"])) %>% 
+  filter(grepl("Frazier|Voit|Bell|Bradley|Flores",Name)) %>% 
+  arrange(zar %>% desc) %>% 
+  select(Name, Team, zar, G:z_sum) %>% 
+  View()
 ```

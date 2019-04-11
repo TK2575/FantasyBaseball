@@ -73,8 +73,7 @@ add_z_scores_to_projections <- function(file, mode) {
           select(., starts_with("z_")), 
           sum
         ),
-        type = "batter") %>% 
-      select(Name, type, z_sum)
+        type = "batter")
   }
   
   else {
@@ -89,8 +88,7 @@ add_z_scores_to_projections <- function(file, mode) {
           select(., starts_with("z_")), 
           sum
         ),
-        type = "pitcher") %>% 
-      select(Name, type, z_sum)
+        type = "pitcher") 
   }
   
 }
