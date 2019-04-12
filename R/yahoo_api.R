@@ -5,6 +5,8 @@ library(magrittr)
 library(glue)
 library(dplyr)
 library(purrr)
+library(janitor)
+library(stringi)
 
 app_keys <- function() {
   key <- Sys.getenv('YAHOO_KEY')
@@ -114,8 +116,7 @@ get_players_page <- function(start) {
            rlang::flatten() %>% 
            as.data.frame(stringsAsFactors = F)) %>% 
     bind_rows() %>% 
-    as_tibble() %>%
-    select(-(14:16))
+    as_tibble()
 }
 
 league_string <- function(game_key=388) {
@@ -155,6 +156,6 @@ get_team_rosters <- function(teams=12) {
     map(get_team_roster) %>% 
     bind_rows() %>% 
     clean_names() %>% 
-    mutate(name_full = chartr("бйунсъ", "aeoinu", name_full))
+    mutate(name_full = stri_trans_general(name_full, "latin-ascii"))
 }
 

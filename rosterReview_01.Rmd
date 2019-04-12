@@ -13,6 +13,7 @@ library(tidyverse)
 library(janitor)
 library(glue)
 library(plotly)
+library(stringi)
 source("R/z_scores.R")
 source("R/yahoo_api.R")
 ```
@@ -31,7 +32,7 @@ if (!file.exists("data/rosters_with_projections_20190409.Rds")) {
 
   draft_results <- read_tsv("data/draftResults.tsv") %>% 
     clean_names() %>% 
-    mutate(player = chartr("áéóíñú", "aeoinu", player)) %>% 
+    mutate(player = stri_trans_general(player, "latin-ascii")) %>% 
     select(pick, player)
   
   projections <- proj_batter %>% 
@@ -139,9 +140,6 @@ rosters_with_adj_projections %>%
   head(30) %>% 
   View()
 
-#free agents missing display position - not getting free agents from Yahoo
-
-  
 ```
 
 ```{r}
@@ -153,4 +151,12 @@ proj_batter %>%
   arrange(zar %>% desc) %>% 
   select(Name, Team, zar, G:z_sum) %>% 
   View()
+```
+
+```{r}
+players <- get_players() %>% 
+  clean_names() %>% 
+  mutate(name_full = stri_trans_general(name_full, "latin-ascii"))
+
+View(players)
 ```

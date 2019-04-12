@@ -13,6 +13,7 @@ library(tidyverse)
 library(janitor)
 library(glue)
 library(plotly)
+library(stringi)
 ```
 
 Various trade scenarios to review during the year.
@@ -67,39 +68,41 @@ proj_pitcher_raw %>%
 
 ```
 
-#### Fantasy team rosters
-```{r}
-source("R/yahoo_api.R")
-get_team_rosters() -> rosters
-```
-
 #### Draft results
 ```{r}
 draft_results_raw <- read_tsv("data/draftResults.tsv") %>% 
   clean_names()
 
 draft_results <- draft_results_raw %>% 
-  mutate(player = chartr("áéóíñú", "aeoinu", player)) %>% 
+  mutate(player = stri_trans_general(player, "latin-ascii")) %>% 
   select(pick, player)
 ```
 
-#### Join data
+#### Join with roster data
 ```{r}
-projections <- proj_batter %>% 
-  bind_rows(proj_pitcher)
+if (!file.exists("data/rosters_with_projections_20190405.Rds")) {
+  source("R/yahoo_api.R")
+  get_team_rosters() -> rosters
+  
+  projections <- proj_batter %>% 
+    bind_rows(proj_pitcher)
+  
+  projections$Name[projections$Name == 'Enrique Hernandez'] <- "Kike Hernandez"
+  projections$Name[projections$Name == 'Peter Alonso'] <- "Pete Alonso"
+  projections$Name[projections$Name == 'Joshua James'] <- "Josh James"
+  
+  rosters %>% 
+    left_join(draft_results, by = c("name_full" = "player")) %>% 
+    full_join(projections, by = c("name_full" = "Name")) %>% 
+    mutate(team = if_else(is.na(team),"Free Agent",team),
+           team = fct_reorder(team, z_sum)) -> rosters_with_projections
+  
+  rosters_with_projections %>% 
+    saveRDS("data/rosters_with_projections_20190405.Rds")
+} else {
+  rosters_with_projections <- readRDS("data/rosters_with_projections_20190405.Rds")
+}
 
-projections$Name[projections$Name == 'Enrique Hernandez'] <- "Kike Hernandez"
-projections$Name[projections$Name == 'Peter Alonso'] <- "Pete Alonso"
-projections$Name[projections$Name == 'Joshua James'] <- "Josh James"
-
-rosters %>% 
-  left_join(draft_results, by = c("name_full" = "player")) %>% 
-  full_join(projections, by = c("name_full" = "Name")) %>% 
-  mutate(team = if_else(is.na(team),"Free Agent",team),
-         team = fct_reorder(team, z_sum)) -> rosters_with_projections
-
-rosters_with_projections %>% 
-  saveRDS("data/rosters_with_projections_20190405.Rds")
 ```
 
 #### Evaluate trade options
