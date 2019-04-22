@@ -102,7 +102,7 @@ get_players <- function(rownum=25, start=0) {
   results
 }
 
-get_players_page <- function(start) {
+get_players_page <- function(start=0) {
   path <- paste0("users;use_login=1/games;game_keys=mlb/players;start=",start,";count=25")
   
   get_json(path) %>% 
@@ -116,7 +116,8 @@ get_players_page <- function(start) {
            rlang::flatten() %>% 
            as.data.frame(stringsAsFactors = F)) %>% 
     bind_rows() %>% 
-    as_tibble()
+    as_tibble() %>% 
+    mutate(name.full = stri_trans_general(name.full, "latin-ascii"))
 }
 
 league_string <- function(game_key=388) {
