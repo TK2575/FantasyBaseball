@@ -106,86 +106,33 @@ rosters_with_adj_projections %>%
 
 ```{r}
 rosters_with_adj_projections %>% 
-  filter(grepl('2B',display_position)) %>% 
-  ggplot(aes(x=team,y=zar,color=team)) +
-  geom_point(aes(text=name_full)) +
-  coord_flip() -> sb
+  filter(grepl("Plouffe|Painting",team)) %>% 
+  select(team, manager, name_full, display_position, zar) %>% 
+  arrange(zar %>% desc) %>% 
+  View()
+  # mutate(zar = janitor::round_half_up(zar)) %>% 
+  # write_csv("data/tradeReview_20190423.csv")
+  
+rosters_with_adj_projections %>% 
+  filter(grepl("Plouffe|Painting",team)) %>% 
+  ggplot(aes(x=team,y=zar,color=type)) +
+  geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type)), width=.2) +
+  coord_flip() -> tv
 
-ggplotly(sb)
+ggplotly(tv)
 
 rosters_with_adj_projections %>% 
-  filter(grepl('3B',display_position)) %>% 
-  ggplot(aes(x=team,y=zar,color=team)) +
-  geom_point(aes(text=name_full)) +
-  coord_flip() -> tb
-
-ggplotly(tb)
-
-rosters_with_adj_projections %>%
-  filter(type == 'batter') %>% 
-  mutate(third_base = grepl('3B',display_position),
-         second_base = grepl('2B',display_position),
-         position = case_when(
-           third_base & second_base ~ 'Both',
-           third_base ~ '3B',
-           second_base ~ '2B',
-           TRUE ~ "Other")) %>% 
-  mutate(team = fct_relevel(team, "Plouffe There It Is!")) %>% 
-  ggplot(aes(x=team,y=zar,color=position)) +
-  geom_point(aes(text=name_full)) +
-  coord_flip() -> both
-
-ggplotly(both)
+  filter(grepl("Plouffe|Dorn",team)) %>% 
+  select(team, manager, name_full, display_position, zar) %>% 
+  filter(grepl("Devers|Swarzak|deGrom|Rendon|Alex Colom|David Price",name_full)) %>% 
+  group_by(team) %>% 
+  summarize(zar = sum(zar))
+  
 
 rosters_with_adj_projections %>% 
-  filter(team == 'Free Agent', 
-         grepl('2B|3B',display_position)) %>% 
-  arrange(zar %>% desc) %>% 
-  head(30) %>% 
-  View()
-
+  filter(grepl("Plouffe|Painting",team)) %>% 
+  select(team, manager, name_full, display_position, zar) %>% 
+  filter(grepl("Santana|Robertson|deGrom|Devers",name_full)) %>% 
+  group_by(team) %>% 
+  summarize(zar = sum(zar))
 ```
-
-```{r}
-proj_batter %>% 
-  mutate(zar = if_else(type=="batter",
-                       z_sum-z_sum_adj$adj[z_sum_adj$type=="batter"],
-                       z_sum-z_sum_adj$adj[z_sum_adj$type=="pitcher"])) %>% 
-  filter(grepl("Frazier|Voit|Bell|Bradley|Flores",Name)) %>% 
-  arrange(zar %>% desc) %>% 
-  select(Name, Team, zar, G:z_sum) %>% 
-  View()
-```
-
-```{r}
-players <- get_players() %>% 
-  clean_names() %>% 
-  mutate(name_full = stri_trans_general(name_full, "latin-ascii"))
-
-View(players)
-```
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
