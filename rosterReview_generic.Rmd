@@ -20,14 +20,18 @@ source("R/yahoo_api.R")
 
 
 ```{r}
+# check if file exists, maybe move all in this chunk to a script
 filename <- function(name) {
   paste0("data/",name,"_",gsub("-","",Sys.Date()),".Rds")
 }
 
 draft_results <- read_tsv("data/draftResults.tsv") %>% 
-    clean_names() %>% 
-    mutate(player = stri_trans_general(player, "latin-ascii")) %>% 
-    select(pick, player)
+  clean_names() %>% 
+  mutate(player = stri_trans_general(player, "latin-ascii"),
+           round = ceiling(pick/12)) %>%  
+  select(player, pick, round) %>% 
+  rename(draft_pick = pick,
+         draft_round = round)
 
 get_team_rosters() -> rosters
 rosters %>% 
@@ -102,8 +106,9 @@ rosters_with_adj_projections %>%
 ```
 
 ```{r}
+# TODO find way to wrap these three views into one
 rosters_with_adj_projections %>% 
-  filter(grepl("Plouffe|Bat Lives",team)) %>% 
+  filter(grepl("Plouffe|Poofer",team)) %>% 
   select(team, manager, name_full, display_position, zar) %>% 
   arrange(zar %>% desc) %>% 
   View()
@@ -111,14 +116,7 @@ rosters_with_adj_projections %>%
   # write_csv("data/tradeReview_20190423.csv")
 
 rosters_with_adj_projections %>% 
-  filter(grepl("Plouffe|Bat Lives",team)) %>% 
-  select(team, manager, name_full, display_position, zar) %>% 
-  filter(grepl("Bryant|deGrom|Bumgarner|Devers",name_full)) %>% 
-  group_by(team) %>% 
-  summarize(zar = sum(zar))
-  
-rosters_with_adj_projections %>% 
-  filter(grepl("Plouffe|Painting",team)) %>% 
+  filter(grepl("Plouffe|Poofers",team)) %>% 
   ggplot(aes(x=team,y=zar,color=type)) +
   geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type)), width=.2) +
   coord_flip() -> tv
@@ -128,25 +126,37 @@ ggplotly(tv)
 rosters_with_adj_projections %>% 
   filter(grepl("Plouffe|Poofer",team)) %>% 
   select(team, manager, name_full, display_position, zar) %>% 
-  filter(grepl("Bregman|Walker|deGrom|Lindor",name_full)) %>% 
-  group_by(team) %>% 
-  summarize(zar = sum(zar))
-  
-
-rosters_with_adj_projections %>% 
-  filter(grepl("Plouffe|Painting",team)) %>% 
-  select(team, manager, name_full, display_position, zar) %>% 
-  filter(grepl("Santana|Robertson|deGrom|Devers",name_full)) %>% 
+  filter(grepl("Bregman|deGrom|Lindor",name_full)) %>% 
   group_by(team) %>% 
   summarize(zar = sum(zar))
 ```
+
 ```{r}
 rosters_with_adj_projections %>% 
-  filter(grepl("Free Agent|Plouffe",team),
-         grepl("RP",display_position)) %>% 
-  ggplot(aes(x=team,y=zar)) +
+  filter(!grepl("Free Agent",team),
+         grepl("SP|3B",display_position)) %>% 
+  ggplot(aes(x=team,y=zar,color=type)) +
   geom_jitter(aes(text=name_full), width = .2) +
   coord_flip() -> tb
 
 ggplotly(tb)
+```
+
+```{r}
+#TODO measuring projected value of draft picks, move to separate research
+rosters_with_adj_projections %>% 
+  filter(!is.na(draft_pick)) %>% 
+  group_by(draft_round) %>% 
+  summarize(zar_median = median(zar) %>% janitor::round_half_up(),
+            zar_mean = mean(zar) %>% janitor::round_half_up()) %>%
+  ggplot(aes(x=draft_round,y=zar_mean)) +
+  geom_col() +
+  geom_line(aes(y=zar))
+
+rosters_with_adj_projections %>% 
+  filter(!is.na(draft_pick)) %>% 
+  group_by(draft_round) %>% 
+  arrange(draft_round) %>% 
+  ggplot(aes(x=draft_round,y=zar,group=draft_round)) +
+  geom_boxplot()
 ```
