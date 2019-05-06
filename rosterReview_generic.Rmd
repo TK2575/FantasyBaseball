@@ -49,8 +49,8 @@ all_players <- rosters %>%
 
 #TODO abstract projection filename
   
-proj_batter <- add_z_scores_to_projections("data/depthChartProjections_ros_batters_20190429.csv","batter") 
-proj_pitcher <- add_z_scores_to_projections("data/depthChartProjections_ros_pitchers_20190429.csv", "pitcher")
+proj_batter <- add_z_scores_to_projections("data/depthChartProjections_ros_batters_20190506.csv","batter") 
+proj_pitcher <- add_z_scores_to_projections("data/depthChartProjections_ros_pitchers_20190506.csv", "pitcher")
   
 projections <- proj_batter %>% 
   bind_rows(proj_pitcher)
@@ -135,9 +135,9 @@ rosters_with_adj_projections %>%
 
 ```{r}
 rosters_with_adj_projections %>% 
-  filter(!grepl("Free Agent",team),
+  #filter(!grepl("Free Agent",team),
          # grepl("SP|3B",display_position)
-         ) %>% 
+   #      ) %>% 
   ggplot(aes(x=team,y=zar,color=type)) +
   geom_boxplot() +
   # geom_jitter(aes(text=name_full), width = .2) +
