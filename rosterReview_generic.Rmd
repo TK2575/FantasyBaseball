@@ -49,8 +49,8 @@ all_players <- rosters %>%
 
 #TODO abstract projection filename
   
-proj_batter <- add_z_scores_to_projections("data/depthChartProjections_ros_batters_20190506.csv","batter") 
-proj_pitcher <- add_z_scores_to_projections("data/depthChartProjections_ros_pitchers_20190506.csv", "pitcher")
+proj_batter <- add_z_scores_to_projections("data/depthChartProjections_ros_batters_20190513.csv","batter") 
+proj_pitcher <- add_z_scores_to_projections("data/depthChartProjections_ros_pitchers_20190513.csv", "pitcher")
   
 projections <- proj_batter %>% 
   bind_rows(proj_pitcher)
@@ -86,6 +86,16 @@ rosters_with_adj_projections <- rosters_with_projections %>%
   mutate(zar = if_else(type=="batter",
                        z_sum-z_sum_adj$adj[z_sum_adj$type=="batter"],
                        z_sum-z_sum_adj$adj[z_sum_adj$type=="pitcher"]))
+
+position_columns <- rosters_with_adj_projections %>%
+    select(starts_with("eligible_positions")) %>%
+    colnames()
+  
+rosters_with_adj_projections %>%
+  mutate(positions = paste(!!! syms(position_columns), sep = "," )) %>%
+  mutate(positions = gsub('NA', '', positions)) %>%
+  mutate(positions = gsub("^,*|(?<=,),|,*$", "", positions, perl=T)) %>%
+  select(-(starts_with("eligible_positions"))) -> rosters_with_adj_projections
 ```
 
 ```{r}
@@ -110,7 +120,7 @@ rosters_with_adj_projections %>%
 ```{r}
 # TODO find way to wrap these three views into one
 rosters_with_adj_projections %>% 
-  filter(grepl("Plouffe|Hebrew",team)) %>% 
+  filter(grepl("Plouffe|Utleys",team)) %>% 
   select(team, manager, name_full, display_position, zar) %>% 
   arrange(zar %>% desc) %>% 
   View()
@@ -118,7 +128,7 @@ rosters_with_adj_projections %>%
   # write_csv("data/tradeReview_20190423.csv")
 
 rosters_with_adj_projections %>% 
-  filter(grepl("Plouffe|Hebrew",team)) %>% 
+  filter(grepl("Plouffe|Utleys",team)) %>% 
   ggplot(aes(x=team,y=zar,color=type)) +
   geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type)), width=.2) +
   coord_flip() -> tv
@@ -126,21 +136,21 @@ rosters_with_adj_projections %>%
 ggplotly(tv)
 
 rosters_with_adj_projections %>% 
-  filter(grepl("Plouffe|Hebrew",team)) %>% 
+  filter(grepl("Plouffe|theriverbrew",team)) %>% 
   select(team, manager, name_full, display_position, zar) %>% 
-  filter(grepl("deGrom|Rizzo",name_full)) %>% 
+  filter(grepl("deGrom|Lucchesi",name_full)) %>% 
   group_by(team) %>% 
   summarize(zar = sum(zar))
 ```
 
 ```{r}
 rosters_with_adj_projections %>% 
-  #filter(!grepl("Free Agent",team),
-         # grepl("SP|3B",display_position)
-   #      ) %>% 
+  filter(!grepl("Free Agent",team),
+  grepl("CF",positions)
+       ) %>%
   ggplot(aes(x=team,y=zar,color=type)) +
-  geom_boxplot() +
-  # geom_jitter(aes(text=name_full), width = .2) +
+  #geom_boxplot() +
+  geom_jitter(aes(text=name_full), width = .2) +
   coord_flip() -> tb
 
 ggplotly(tb)
@@ -155,7 +165,9 @@ rosters_with_adj_projections %>%
             zar_mean = mean(zar) %>% janitor::round_half_up()) %>%
   ggplot(aes(x=draft_round,y=zar_mean)) +
   geom_col() +
-  geom_line(aes(y=zar_median))
+  geom_line(aes(y=zar_median)) -> draft_plot
+
+ggplotly(draft_plot)
 
 rosters_with_adj_projections %>% 
   filter(!is.na(draft_pick)) %>% 
@@ -164,3 +176,4 @@ rosters_with_adj_projections %>%
   ggplot(aes(x=draft_round,y=zar,group=draft_round)) +
   geom_boxplot()
 ```
+
