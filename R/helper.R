@@ -5,6 +5,8 @@ source("R/z_scores.R")
 source("R/yahoo_api.R")
 
 #TODO review/resolve all player name joins (orphaned results, incorrect assignments)
+#TODO keep player ids from each source
+#TODO ingest performance data from fangraphs
 
 filename <- function(name) {
   paste0("data/", name, "_", gsub("-", "", Sys.Date()), ".Rds")
@@ -24,7 +26,7 @@ load_draft_results <- function() {
 load_rosters <- function(force = FALSE) {
   file <- filename("rosters")
   
-  if (force || !file %>% exists()) {
+  if (force || !file %>% file.exists()) {
     get_team_rosters() %>%
       saveRDS(file)
   }
@@ -34,7 +36,7 @@ load_rosters <- function(force = FALSE) {
 load_players <- function(force = FALSE) {
   file <- filename("yahoo_players")
   
-  if (force || !file %>% exists()) {
+  if (force || !file %>% file.exists()) {
     get_players(2500) %>%
       saveRDS(file)
   }
@@ -52,8 +54,8 @@ load_projections <-
     pitcher_destination <-
       paste0(file_start, "pitchers_", date_string, ".csv")
     
-    if (force || !batter_destination %>% exists()) {
-      if (batter_file %>% is_null() || !batter_file %>% exists()) {
+    if (force || !batter_destination %>% file.exists()) {
+      if (batter_file %>% is_null() || !batter_file %>% file.exists()) {
         stop(
           "Could not find today's batter projections in expected folder, or replacement not specified"
         )
@@ -62,8 +64,8 @@ load_projections <-
       }
     }
     
-    if (force || !pitcher_destination %>% exists()) {
-      if (pitcher_file %>% is_null() || !pitcher_file %>% exists()) {
+    if (force || !pitcher_destination %>% file.exists()) {
+      if (pitcher_file %>% is_null() || !pitcher_file %>% file.exists()) {
         stop(
           "Could not find today's pitcher projections in expected folder, or replacement not specified"
         )
@@ -72,8 +74,8 @@ load_projections <-
       }
     }
     
-    proj_batter <- add_z_scores_to_projections(batter_destination)
-    proj_pitcher <- add_z_scores_to_projections(pitcher_destination)
+    proj_batter <- add_z_scores_to_projections(batter_destination, "batter")
+    proj_pitcher <- add_z_scores_to_projections(pitcher_destination, "pitcher")
     
     bind_rows(proj_batter, proj_pitcher) %>%
       clean_names() %>%
@@ -98,7 +100,7 @@ load_players_with_projections <-
            pitcher_file = NULL) {
     file <- filename("rosters_with_projections")
     
-    if (force || !file %>% exists()) {
+    if (force || !file %>% file.exists()) {
       load_rosters(force) %>%
         select(player_id, team, manager) %>%
         full_join(load_players(force)) %>%
