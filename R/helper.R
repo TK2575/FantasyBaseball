@@ -5,10 +5,10 @@ source("R/z_scores.R")
 source("R/yahoo_api.R")
 
 #TODO review/resolve all player name joins (orphaned results, incorrect assignments)
-#TODO keep player ids from each source
 #TODO ingest performance data from fangraphs
+#TODO add z_score_adj (zar), position column compact options for load player data
 
-filename <- function(name) {
+filename_today <- function(name) {
   paste0("data/", name, "_", gsub("-", "", Sys.Date()), ".Rds")
 }
 
@@ -24,7 +24,7 @@ load_draft_results <- function() {
 }
 
 load_rosters <- function(force = FALSE) {
-  file <- filename("rosters")
+  file <- filename_today("rosters")
   
   if (force || !file %>% file.exists()) {
     get_team_rosters() %>%
@@ -34,7 +34,7 @@ load_rosters <- function(force = FALSE) {
 }
 
 load_players <- function(force = FALSE) {
-  file <- filename("yahoo_players")
+  file <- filename_today("yahoo_players")
   
   if (force || !file %>% file.exists()) {
     get_players(2500) %>%
@@ -74,13 +74,18 @@ load_projections <-
       }
     }
     
-    proj_batter <- add_z_scores_to_projections(batter_destination, "batter")
-    proj_pitcher <- add_z_scores_to_projections(pitcher_destination, "pitcher")
+    compile_z_scores(batter_destination, pitcher_destination)
     
-    bind_rows(proj_batter, proj_pitcher) %>%
-      clean_names() %>%
-      adjust_names_for_join()
   }
+
+compile_z_scores <- function(batter_file, pitcher_file) {
+  proj_batter <- add_z_scores(batter_file, "batter")
+  proj_pitcher <- add_z_scores(pitcher_file, "pitcher")
+  
+  bind_rows(proj_batter, proj_pitcher) %>%
+    clean_names() %>%
+    adjust_names_for_join()
+}
 
 adjust_names_for_join <- function(df) {
   names_key_df <- read_csv("data/nameJoins.csv") %>%
@@ -98,7 +103,7 @@ load_players_with_projections <-
   function(force = FALSE,
            batter_file = NULL,
            pitcher_file = NULL) {
-    file <- filename("rosters_with_projections")
+    file <- filename_today("rosters_with_projections")
     
     if (force || !file %>% file.exists()) {
       load_rosters(force) %>%

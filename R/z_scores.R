@@ -50,7 +50,11 @@ z_score_rate <- function(df, stat, quantity, invert=FALSE, multiplier = 1) {
 }
 
 add_z_scores_to_projections <- function(file, mode) {
-  if (!mode %in% c("batter","pitcher")) {
+  add_z_scores(file, mode)
+}
+
+add_z_scores <- function(file, mode) {
+  if (is.null(mode) | !mode %in% c("batter","pitcher")) {
     stop("mode must be either batter or pitcher")
   }
   
