@@ -19,16 +19,17 @@ source("R/helper.R")
 
 ```{r}
 force <- FALSE
+force_all <- FALSE
 batter_file <- NULL
 pitcher_file <- NULL
 
-rosters <- load_players_with_projections(force, batter_file, pitcher_file)
+rosters <- load_players_with_projections(force, force_all, batter_file, pitcher_file)
 ```
 
 ```{r}
 #TODO move to helper
 rosters %>% 
-  filter(!type == 'NA', !team == 'Free Agent') %>%
+  filter(type != 'NA', team != 'Free Agent') %>%
   group_by(type) %>% 
   summarize(adj = median(z_sum)) -> z_sum_adj
 

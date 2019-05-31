@@ -63,23 +63,23 @@ load_projections <-
     pitcher_destination <-
       paste0(file_start, "pitchers_", date_string, ".csv")
     
-    if (force || !batter_destination %>% file.exists()) {
-      if (batter_file %>% is_null() || !batter_file %>% file.exists()) {
+    if (force | !batter_destination %>% file.exists()) {
+      if (batter_file %>% is_null() | !batter_file %>% file.exists()) {
         stop(
           "Could not find today's batter projections in expected folder, or replacement not specified"
         )
       } else {
-        file.copy(batter_file, batter_destination)
+        file.copy(batter_file, batter_destination, overwrite=TRUE)
       }
     }
     
-    if (force || !pitcher_destination %>% file.exists()) {
-      if (pitcher_file %>% is_null() || !pitcher_file %>% file.exists()) {
+    if (force | !pitcher_destination %>% file.exists()) {
+      if (pitcher_file %>% is_null() | !pitcher_file %>% file.exists()) {
         stop(
           "Could not find today's pitcher projections in expected folder, or replacement not specified"
         )
       } else {
-        file.copy(pitcher_file, pitcher_destination)
+        file.copy(pitcher_file, pitcher_destination, overwrite=TRUE)
       }
     }
     
@@ -121,7 +121,7 @@ load_players_with_projections <-
         select(player_id, team, manager) %>%
         full_join(load_players(force_all)) %>%
         full_join(load_draft_results(), by = c("name_full" = "player")) %>%
-        left_join(load_projections(force_all, batter_file, pitcher_file),
+        inner_join(load_projections(force_all, batter_file, pitcher_file),
                   by = c("name_full" = "name", "type" = "type")) %>%
         mutate(team = if_else(is.na(team), "Free Agent", team),
                team = fct_reorder(team, z_sum)) %>%
