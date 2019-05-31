@@ -74,7 +74,8 @@ load_projections <-
       }
     }
     
-    compile_z_scores(batter_destination, pitcher_destination)
+    compile_z_scores(batter_destination, pitcher_destination) %>% 
+      rename(mlb_team = team)
     
   }
 
@@ -113,7 +114,7 @@ load_players_with_projections <-
         mutate(name_full = stri_trans_general(name_full, "latin-ascii")) %>%
         full_join(load_draft_results(), by = c("name_full" = "player")) %>%
         full_join(load_projections(force, batter_file, pitcher_file),
-                  by = c("name_full" = "Name")) %>%
+                  by = c("name_full" = "name")) %>%
         mutate(team = if_else(is.na(team), "Free Agent", team),
                team = fct_reorder(team, z_sum)) %>%
         saveRDS(file)
