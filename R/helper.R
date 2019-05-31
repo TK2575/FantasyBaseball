@@ -6,7 +6,9 @@ source("R/yahoo_api.R")
 
 #TODO review/resolve all player name joins (orphaned results, incorrect assignments)
 #TODO ingest performance data from fangraphs
-#TODO add z_score_adj (zar), position column compact options for load player data
+#TODO add position column compact options for load player data
+#TODO add z_adj -> zar (sets z_score above replacement, based on median z_score of rostered players, grouped by type [batter/pitcher])
+#TODO create a "get latest compiled roster" method
 
 filename_today <- function(name) {
   paste0("data/", name, "_", gsub("-", "", Sys.Date()), ".Rds")
@@ -38,6 +40,13 @@ load_players <- function(force = FALSE) {
   
   if (force || !file %>% file.exists()) {
     get_players(2500) %>%
+      clean_names() %>%
+      mutate(type = case_when(
+        position_type == "B" ~ "batter",
+        position_type == "P" ~ "pitcher",
+        TRUE ~ "other"
+      )) %>% 
+      select(-position_type) %>% 
       saveRDS(file)
   }
   readRDS(file)
@@ -102,19 +111,18 @@ adjust_names_for_join <- function(df) {
 
 load_players_with_projections <-
   function(force = FALSE,
+           force_all = FALSE,
            batter_file = NULL,
            pitcher_file = NULL) {
     file <- filename_today("rosters_with_projections")
     
-    if (force || !file %>% file.exists()) {
-      load_rosters(force) %>%
+    if (force || force_all || !file %>% file.exists()) {
+      load_rosters(force_all) %>%
         select(player_id, team, manager) %>%
-        full_join(load_players(force)) %>%
-        clean_names() %>%
-        mutate(name_full = stri_trans_general(name_full, "latin-ascii")) %>%
+        full_join(load_players(force_all)) %>%
         full_join(load_draft_results(), by = c("name_full" = "player")) %>%
-        full_join(load_projections(force, batter_file, pitcher_file),
-                  by = c("name_full" = "name")) %>%
+        left_join(load_projections(force_all, batter_file, pitcher_file),
+                  by = c("name_full" = "name", "type" = "type")) %>%
         mutate(team = if_else(is.na(team), "Free Agent", team),
                team = fct_reorder(team, z_sum)) %>%
         saveRDS(file)
