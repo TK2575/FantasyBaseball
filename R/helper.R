@@ -4,11 +4,9 @@ library(stringi)
 source("R/z_scores.R")
 source("R/yahoo_api.R")
 
-#TODO review/resolve all player name joins (orphaned results, incorrect assignments)
 #TODO ingest performance data from fangraphs
-#TODO add position column compact options for load player data
-#TODO add z_adj -> zar (sets z_score above replacement, based on median z_score of rostered players, grouped by type [batter/pitcher])
 #TODO create a "get latest compiled roster" method
+#TODO add overall/by type rankings
 
 filename_today <- function(name) {
   paste0("data/", name, "_", gsub("-", "", Sys.Date()), ".Rds")
@@ -125,8 +123,105 @@ load_players_with_projections <-
                   by = c("name_full" = "name", "type" = "type")) %>%
         mutate(team = if_else(is.na(team), "Free Agent", team),
                team = fct_reorder(team, z_sum)) %>%
+        compact_positions() %>% 
+        rescale_z_sum() %>% 
         saveRDS(file)
     }
     
     readRDS(file)
   }
+
+rescale_z_sum <- function(df) {
+  df %>% 
+    filter(type != 'NA', team != 'Free Agent') %>%
+    group_by(type) %>% 
+    summarize(adj = median(z_sum)) -> z_sum_adj
+  
+  df %>% 
+    filter(!type == 'NA') %>% 
+    mutate(zar = if_else(type=="batter",
+                         z_sum-z_sum_adj$adj[z_sum_adj$type=="batter"],
+                         z_sum-z_sum_adj$adj[z_sum_adj$type=="pitcher"]))
+}
+
+compact_positions <- function(df) {
+  position_columns <- df %>%
+    select(starts_with("eligible_positions")) %>%
+    colnames()
+  
+  df %>%
+    mutate(positions = paste(!!! syms(position_columns), sep = "," )) %>%
+    mutate(positions = gsub('NA', '', positions)) %>%
+    mutate(positions = gsub("^,*|(?<=,),|,*$", "", positions, perl=T)) %>%
+    select(-(starts_with("eligible_positions"))) %>% 
+    mutate(positions = if_else(positions == "",position,positions))
+}
+
+row_per_position <- function(df) {
+  df <- df %>%
+    mutate(C = grepl("C", display_position)) %>%
+    mutate(`1B` = grepl("1B", positions)) %>%
+    mutate(`2B` = grepl("2B", positions)) %>%
+    mutate(SS = grepl("SS", positions)) %>%
+    mutate(`3B` = grepl("3B", positions)) %>%
+    mutate(LF = grepl("LF", positions)) %>% 
+    mutate(CF = grepl("CF", positions)) %>% 
+    mutate(RF = grepl("RF", positions)) %>% 
+    mutate(SP = grepl("SP", positions)) %>% 
+    mutate(RP = grepl("RP", positions))
+  
+  C <- df %>%
+    filter(C) %>%
+    mutate(position = "C")
+  
+  `1B` <- df %>%
+    filter(`1B`) %>%
+    mutate(position = "1B")
+  
+  `2B` <- df %>%
+    filter(`2B`) %>%
+    mutate(position = "2B")
+  
+  `3B` <- df %>%
+    filter(`3B`) %>%
+    mutate(position = "3B")
+  
+  SS <- df %>%
+    filter(SS) %>%
+    mutate(position = "SS")
+  
+  LF <- df %>%
+    filter(LF) %>%
+    mutate(position = "LF")
+  
+  CF <- df %>%
+    filter(CF) %>%
+    mutate(position = "CF")
+  
+  RF <- df %>%
+    filter(RF) %>%
+    mutate(position = "RF")
+  
+  SP <- df %>% 
+    filter(SP) %>% 
+    mutate(position = "SP")
+  
+  RP <- df %>% 
+    filter(RP) %>% 
+    mutate(position = "RP")
+  
+  C %>%
+    bind_rows(`1B`) %>%
+    bind_rows(`2B`) %>%
+    bind_rows(`3B`) %>%
+    bind_rows(SS) %>%
+    bind_rows(LF) %>% 
+    bind_rows(CF) %>% 
+    bind_rows(RF) %>% 
+    bind_rows(SP) %>% 
+    bind_rows(RP) %>% 
+    unique() %>%
+    arrange(z_sum %>% desc) %>%
+    mutate(z_rank = row_number(),
+           position = fct_relevel(position, "C","1B", "2B","3B","SS","LF","CF","RF","SP","RP"))
+}

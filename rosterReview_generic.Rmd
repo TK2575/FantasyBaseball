@@ -18,7 +18,7 @@ source("R/helper.R")
 
 
 ```{r}
-force <- FALSE
+force <- TRUE
 force_all <- FALSE
 batter_file <- NULL
 pitcher_file <- NULL
@@ -27,32 +27,7 @@ rosters <- load_players_with_projections(force, force_all, batter_file, pitcher_
 ```
 
 ```{r}
-#TODO move to helper
-rosters %>% 
-  filter(type != 'NA', team != 'Free Agent') %>%
-  group_by(type) %>% 
-  summarize(adj = median(z_sum)) -> z_sum_adj
-
-rosters <- rosters %>% 
-  filter(!type == 'NA') %>% 
-  mutate(zar = if_else(type=="batter",
-                       z_sum-z_sum_adj$adj[z_sum_adj$type=="batter"],
-                       z_sum-z_sum_adj$adj[z_sum_adj$type=="pitcher"]))
-
-position_columns <- rosters %>%
-    select(starts_with("eligible_positions")) %>%
-    colnames()
-  
-rosters %>%
-  mutate(positions = paste(!!! syms(position_columns), sep = "," )) %>%
-  mutate(positions = gsub('NA', '', positions)) %>%
-  mutate(positions = gsub("^,*|(?<=,),|,*$", "", positions, perl=T)) %>%
-  select(-(starts_with("eligible_positions"))) -> rosters
-```
-
-```{r}
 #TODO abstract some of these views
-#FIXME some join issues here
 rosters %>% 
   mutate(zar = round(zar)) %>% 
   filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 0)) %>% 
@@ -65,7 +40,7 @@ ggplotly(pa)
 rosters %>% 
   filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 0)) %>% 
   arrange(zar %>% desc) %>% 
-  select(name_full, display_position, type, zar) %>% 
+  select(name_full, positions, type, zar) %>% 
   View()
 ```
 
@@ -88,21 +63,22 @@ rosters %>%
 ggplotly(tv)
 
 rosters %>% 
-  filter(grepl("Plouffe|theriverbrew",team)) %>% 
+  filter(grepl("process|Dorn",team)) %>% 
   select(team, manager, name_full, display_position, zar) %>% 
-  filter(grepl("deGrom|Lucchesi",name_full)) %>% 
+  filter(grepl("Cain|Price|Romo|Trout|Whitley|Claudio",name_full)) %>% 
   group_by(team) %>% 
   summarize(zar = sum(zar))
 ```
 
 ```{r}
 rosters %>% 
-  filter(!grepl("Free Agent",team),
-  grepl("CF",positions)
+  filter(!grepl("Free Agent",team)
+  #        ,
+  # grepl("CF",positions)
        ) %>%
   ggplot(aes(x=team,y=zar,color=type)) +
-  #geom_boxplot() +
-  geom_jitter(aes(text=name_full), width = .2) +
+  geom_boxplot() +
+  # geom_jitter(aes(text=name_full), width = .2) +
   coord_flip() -> tb
 
 ggplotly(tb)
@@ -129,3 +105,17 @@ rosters %>%
   geom_boxplot()
 ```
 
+```{r}
+#TODO move to separate research
+#FIXME where is Robinson Chirinos?
+
+rosters_by_position <- row_per_position(rosters)
+
+rosters_by_position %>% 
+  filter(team != "Free Agent") %>% 
+  ggplot(aes(position, zar, color = position, alpha = zar)) +
+  geom_point(aes(text=name_full)) +
+  facet_wrap(~ team) -> team_pos
+
+ggplotly(team_pos)
+```
