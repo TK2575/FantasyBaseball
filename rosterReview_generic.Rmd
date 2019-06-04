@@ -20,10 +20,18 @@ source("R/helper.R")
 ```{r}
 force <- TRUE
 force_all <- FALSE
-batter_file <- NULL
-pitcher_file <- NULL
+batter_file <- "temp/FanGraphs Leaderboard.csv"
+pitcher_file <- "temp/FanGraphs Leaderboard (1).csv"
 
-rosters <- load_players_with_projections(force, force_all, batter_file, pitcher_file)
+if (force_all && (batter_file %>% is.null() || pitcher_file %>% is.null())) {
+  stop("Need projection files to force a recalc")
+} else {
+  rosters <- load_players_with_projections(force, 
+                                           force_all, 
+                                           batter_file, 
+                                           pitcher_file)
+}
+
 ```
 
 ```{r}
@@ -47,7 +55,7 @@ rosters %>%
 ```{r}
 # TODO find way to wrap these three views into one
 rosters %>% 
-  filter(grepl("Plouffe|Utleys",team)) %>% 
+  filter(grepl("Plouffe|Deez",team)) %>% 
   select(team, manager, name_full, display_position, zar) %>% 
   arrange(zar %>% desc) %>% 
   View()
@@ -55,7 +63,7 @@ rosters %>%
   # write_csv("data/tradeReview_20190423.csv")
 
 rosters %>% 
-  filter(grepl("Plouffe|Utleys",team)) %>% 
+  filter(grepl("Plouffe|Deez",team)) %>% 
   ggplot(aes(x=team,y=zar,color=type)) +
   geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type)), width=.2) +
   coord_flip() -> tv
@@ -63,9 +71,9 @@ rosters %>%
 ggplotly(tv)
 
 rosters %>% 
-  filter(grepl("process|Dorn",team)) %>% 
+  filter(grepl("Dorn|Plouffe",team)) %>% 
   select(team, manager, name_full, display_position, zar) %>% 
-  filter(grepl("Cain|Price|Romo|Trout|Whitley|Claudio",name_full)) %>% 
+  filter(grepl("Puig|Yonny Chir",name_full)) %>% 
   group_by(team) %>% 
   summarize(zar = sum(zar))
 ```
