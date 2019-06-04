@@ -55,7 +55,7 @@ rosters %>%
 ```{r}
 # TODO find way to wrap these three views into one
 rosters %>% 
-  filter(grepl("Plouffe|Deez",team)) %>% 
+  filter(grepl("Plouffe|Dorn",team)) %>% 
   select(team, manager, name_full, display_position, zar) %>% 
   arrange(zar %>% desc) %>% 
   View()
@@ -63,7 +63,7 @@ rosters %>%
   # write_csv("data/tradeReview_20190423.csv")
 
 rosters %>% 
-  filter(grepl("Plouffe|Deez",team)) %>% 
+  filter(grepl("Plouffe|Dorn",team)) %>% 
   ggplot(aes(x=team,y=zar,color=type)) +
   geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type)), width=.2) +
   coord_flip() -> tv
@@ -71,11 +71,16 @@ rosters %>%
 ggplotly(tv)
 
 rosters %>% 
-  filter(grepl("Dorn|Plouffe",team)) %>% 
+  filter(grepl("Dorn|process",team)) %>% 
   select(team, manager, name_full, display_position, zar) %>% 
-  filter(grepl("Puig|Yonny Chir",name_full)) %>% 
+  filter(grepl("Trout|Whitley|Cain|Price",name_full)) %>% 
   group_by(team) %>% 
   summarize(zar = sum(zar))
+
+rosters %>% 
+  filter(grepl("Dorn|process",team)) %>% 
+  select(team, manager, name_full, display_position, war) %>% 
+  filter(grepl("Trout|Whitley|Cain|Price",name_full))
 ```
 
 ```{r}
@@ -94,6 +99,7 @@ ggplotly(tb)
 
 ```{r}
 #TODO measuring projected value of draft picks, move to separate research
+#TODO get beginning of year zar/war values
 rosters %>% 
   filter(!is.na(draft_pick)) %>%
   group_by(draft_round) %>% 
@@ -110,6 +116,24 @@ rosters %>%
   group_by(draft_round) %>% 
   arrange(draft_round) %>% 
   ggplot(aes(x=draft_round,y=zar,group=draft_round)) +
+  geom_boxplot()
+
+rosters %>% 
+  filter(!is.na(draft_pick)) %>%
+  group_by(draft_round) %>% 
+  summarize(war_median = median(war) %>% janitor::round_half_up(),
+            war_mean = mean(war) %>% janitor::round_half_up()) %>%
+  ggplot(aes(x=draft_round,y=war_mean)) +
+  geom_col() +
+  geom_line(aes(y=war_median)) -> draft_plot_war
+
+ggplotly(draft_plot_war)
+
+rosters %>% 
+  filter(!is.na(draft_pick)) %>% 
+  group_by(draft_round) %>% 
+  arrange(draft_round) %>% 
+  ggplot(aes(x=draft_round,y=war,group=draft_round)) +
   geom_boxplot()
 ```
 
