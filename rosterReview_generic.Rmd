@@ -131,14 +131,30 @@ rosters_by_position %>%
   filter(!is.na(manager)) %>% 
   group_by(position) %>% 
   count() %>% 
-  ungroup() -> count_by_pos
+  ungroup() -> rostered_count_by_pos
 
 rosters_by_position %>% 
   group_by(position) %>% 
   arrange(zar %>% desc()) %>% 
   mutate(num = row_number()) %>% 
-  ungroup %>% 
-  full_join(count_by_pos, "position") %>% 
-  filter(num <= 1.5 * n) %>% 
-  select(team, manager, name_full, position, zar) %>% View()
+  full_join(rostered_count_by_pos, "position") %>% 
+  filter(num <= n) %>% 
+  summarize(median_zar = median(zar)) -> pos_median_zar
+
+rosters_by_position %>% 
+  full_join(pos_median_zar) %>% 
+  mutate(pos_zar = zar + median_zar) -> rosters_by_position
+
+rosters_by_position %>% 
+  select(team, manager, name_full, position, zar, pos_zar) %>% 
+  View()
+  
+rosters_by_position %>% 
+  filter(team != "Free Agent") %>% 
+  ggplot(aes(position, pos_zar, color = position, alpha = zar)) +
+  geom_point(aes(text=name_full)) +
+  facet_wrap(~ team) -> team_pos_adj
+
+ggplotly(team_pos_adj)
+
 ```
