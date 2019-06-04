@@ -7,6 +7,7 @@ source("R/yahoo_api.R")
 #TODO ingest performance data from fangraphs
 #TODO create a "get latest compiled roster" method
 #TODO add overall/by type rankings
+#TODO rank/zar by position
 
 filename_today <- function(name) {
   paste0("data/", name, "_", gsub("-", "", Sys.Date()), ".Rds")
@@ -61,8 +62,8 @@ load_projections <-
     pitcher_destination <-
       paste0(file_start, "pitchers_", date_string, ".csv")
     
-    if (force | !batter_destination %>% file.exists()) {
-      if (batter_file %>% is_null() | !batter_file %>% file.exists()) {
+    if (force || !batter_destination %>% file.exists()) {
+      if (batter_file %>% is_null() || !batter_file %>% file.exists()) {
         stop(
           "Could not find today's batter projections in expected folder, or replacement not specified"
         )
@@ -71,8 +72,8 @@ load_projections <-
       }
     }
     
-    if (force | !pitcher_destination %>% file.exists()) {
-      if (pitcher_file %>% is_null() | !pitcher_file %>% file.exists()) {
+    if (force || !pitcher_destination %>% file.exists()) {
+      if (pitcher_file %>% is_null() || !pitcher_file %>% file.exists()) {
         stop(
           "Could not find today's pitcher projections in expected folder, or replacement not specified"
         )

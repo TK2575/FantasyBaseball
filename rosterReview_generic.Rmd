@@ -118,4 +118,19 @@ rosters_by_position %>%
   facet_wrap(~ team) -> team_pos
 
 ggplotly(team_pos)
+
+rosters_by_position %>% 
+  filter(!is.na(manager)) %>% 
+  group_by(position) %>% 
+  count() %>% 
+  ungroup() -> count_by_pos
+
+rosters_by_position %>% 
+  group_by(position) %>% 
+  arrange(zar %>% desc()) %>% 
+  mutate(num = row_number()) %>% 
+  ungroup %>% 
+  full_join(count_by_pos, "position") %>% 
+  filter(num <= 1.5 * n) %>% 
+  select(team, manager, name_full, position, zar) %>% View()
 ```
