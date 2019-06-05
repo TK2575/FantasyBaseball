@@ -55,15 +55,15 @@ rosters %>%
 ```{r}
 # TODO find way to wrap these three views into one
 rosters %>% 
-  filter(grepl("Plouffe|Dorn",team)) %>% 
-  select(team, manager, name_full, display_position, zar) %>% 
+  filter(grepl("Plouffe|Matter",team)) %>% 
+  select(team, manager, name_full, display_position, zar, positions) %>% 
   arrange(zar %>% desc) %>% 
   View()
   # mutate(zar = janitor::round_half_up(zar)) %>% 
   # write_csv("data/tradeReview_20190423.csv")
 
 rosters %>% 
-  filter(grepl("Plouffe|Dorn",team)) %>% 
+  filter(grepl("Plouffe|Matter",team)) %>% 
   ggplot(aes(x=team,y=zar,color=type)) +
   geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type)), width=.2) +
   coord_flip() -> tv
@@ -71,16 +71,12 @@ rosters %>%
 ggplotly(tv)
 
 rosters %>% 
-  filter(grepl("Dorn|process",team)) %>% 
+  filter(grepl("Plouffe|Matter",team)) %>% 
   select(team, manager, name_full, display_position, zar) %>% 
-  filter(grepl("Trout|Whitley|Cain|Price",name_full)) %>% 
-  group_by(team) %>% 
-  summarize(zar = sum(zar))
-
-rosters %>% 
-  filter(grepl("Dorn|process",team)) %>% 
-  select(team, manager, name_full, display_position, war) %>% 
-  filter(grepl("Trout|Whitley|Cain|Price",name_full))
+  filter(grepl("Hicks|Muncy",name_full)) 
+# %>%
+#   group_by(team) %>%
+#   summarize(zar = sum(zar))
 ```
 
 ```{r}
@@ -139,7 +135,6 @@ rosters %>%
 
 ```{r}
 #TODO move to separate research
-#FIXME where is Robinson Chirinos?
 
 rosters_by_position <- row_per_position(rosters)
 
@@ -167,7 +162,7 @@ rosters_by_position %>%
 
 rosters_by_position %>% 
   full_join(pos_median_zar) %>% 
-  mutate(pos_zar = zar + median_zar) -> rosters_by_position
+  mutate(pos_zar = zar - median_zar) -> rosters_by_position
 
 rosters_by_position %>% 
   select(team, manager, name_full, position, zar, pos_zar) %>% 
