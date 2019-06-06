@@ -32,6 +32,7 @@ if (force_all && (batter_file %>% is.null() || pitcher_file %>% is.null())) {
                                            pitcher_file)
 }
 
+#TODO review duplicates
 ```
 
 ```{r}
@@ -162,6 +163,7 @@ rosters_by_position %>%
 
 rosters_by_position %>% 
   full_join(pos_median_zar) %>% 
+  #FIXME two decimal places for pos_zar
   mutate(pos_zar = zar - median_zar) -> rosters_by_position
 
 rosters_by_position %>% 
@@ -176,4 +178,23 @@ rosters_by_position %>%
 
 ggplotly(team_pos_adj)
 
+# Averaging pos_zar by position, overall
+# Does this actually indicate good/bad teams?
+rosters_by_position %>% 
+  filter(team != "Free Agent") %>% 
+  group_by(team, position) %>% 
+  summarize(avg_pos_zar = mean(pos_zar)) -> team_pos_avg_zar
+
+team_pos_avg_zar %>%  
+  ggplot(aes(position, avg_pos_zar, color = position)) +
+  geom_point() +
+  facet_wrap(~ team) -> team_avg_pos
+
+ggplotly(team_avg_pos)
+
+team_pos_avg_zar %>% 
+  ungroup() %>% 
+  group_by(team) %>% 
+  summarize(avg_pos_zar = mean(avg_pos_zar)) %>% 
+  arrange(avg_pos_zar %>% desc)
 ```
