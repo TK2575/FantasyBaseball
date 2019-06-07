@@ -19,7 +19,7 @@ source("R/helper.R")
 
 ```{r}
 force <- TRUE
-force_all <- FALSE
+force_all <- TRUE
 batter_file <- "temp/FanGraphs Leaderboard.csv"
 pitcher_file <- "temp/FanGraphs Leaderboard (1).csv"
 
@@ -53,86 +53,6 @@ rosters %>%
   View()
 ```
 
-```{r}
-# TODO find way to wrap these three views into one
-rosters %>% 
-  filter(grepl("Plouffe|Matter",team)) %>% 
-  select(team, manager, name_full, display_position, zar, positions) %>% 
-  arrange(zar %>% desc) %>% 
-  View()
-  # mutate(zar = janitor::round_half_up(zar)) %>% 
-  # write_csv("data/tradeReview_20190423.csv")
-
-rosters %>% 
-  filter(grepl("Plouffe|Matter",team)) %>% 
-  ggplot(aes(x=team,y=zar,color=type)) +
-  geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type)), width=.2) +
-  coord_flip() -> tv
-
-ggplotly(tv)
-
-rosters %>% 
-  filter(grepl("Plouffe|Matter",team)) %>% 
-  select(team, manager, name_full, display_position, zar) %>% 
-  filter(grepl("Hicks|Muncy",name_full)) 
-# %>%
-#   group_by(team) %>%
-#   summarize(zar = sum(zar))
-```
-
-```{r}
-rosters %>% 
-  filter(!grepl("Free Agent",team)
-  #        ,
-  # grepl("CF",positions)
-       ) %>%
-  ggplot(aes(x=team,y=zar,color=type)) +
-  geom_boxplot() +
-  # geom_jitter(aes(text=name_full), width = .2) +
-  coord_flip() -> tb
-
-ggplotly(tb)
-```
-
-```{r}
-#TODO measuring projected value of draft picks, move to separate research
-#TODO get beginning of year zar/war values
-rosters %>% 
-  filter(!is.na(draft_pick)) %>%
-  group_by(draft_round) %>% 
-  summarize(zar_median = median(zar) %>% janitor::round_half_up(),
-            zar_mean = mean(zar) %>% janitor::round_half_up()) %>%
-  ggplot(aes(x=draft_round,y=zar_mean)) +
-  geom_col() +
-  geom_line(aes(y=zar_median)) -> draft_plot
-
-ggplotly(draft_plot)
-
-rosters %>% 
-  filter(!is.na(draft_pick)) %>% 
-  group_by(draft_round) %>% 
-  arrange(draft_round) %>% 
-  ggplot(aes(x=draft_round,y=zar,group=draft_round)) +
-  geom_boxplot()
-
-rosters %>% 
-  filter(!is.na(draft_pick)) %>%
-  group_by(draft_round) %>% 
-  summarize(war_median = median(war) %>% janitor::round_half_up(),
-            war_mean = mean(war) %>% janitor::round_half_up()) %>%
-  ggplot(aes(x=draft_round,y=war_mean)) +
-  geom_col() +
-  geom_line(aes(y=war_median)) -> draft_plot_war
-
-ggplotly(draft_plot_war)
-
-rosters %>% 
-  filter(!is.na(draft_pick)) %>% 
-  group_by(draft_round) %>% 
-  arrange(draft_round) %>% 
-  ggplot(aes(x=draft_round,y=war,group=draft_round)) +
-  geom_boxplot()
-```
 
 ```{r}
 #TODO move to separate research
@@ -195,6 +115,94 @@ ggplotly(team_avg_pos)
 team_pos_avg_zar %>% 
   ungroup() %>% 
   group_by(team) %>% 
-  summarize(avg_pos_zar = mean(avg_pos_zar)) %>% 
-  arrange(avg_pos_zar %>% desc)
+  summarize(ovrl_avg_pos_zar = mean(avg_pos_zar),
+            var_pos_zar = sd(avg_pos_zar)) %>% 
+  arrange(ovrl_avg_pos_zar %>% desc)
+
+rosters_by_position %>% 
+  filter(team != "Free Agent") %>% 
+  ggplot(aes(pos_zar)) + 
+  geom_freqpoly(binwidth=.25) + 
+  facet_wrap(~ position)
+```
+
+```{r}
+# TODO find way to wrap these three views into one
+rosters %>% 
+  filter(grepl("Plouffe|Nuts",team)) %>% 
+  select(team, manager, name_full, display_position, zar, positions) %>% 
+  arrange(zar %>% desc) %>% 
+  View()
+  # mutate(zar = janitor::round_half_up(zar)) %>% 
+  # write_csv("data/tradeReview_20190423.csv")
+
+rosters %>% 
+  filter(grepl("Plouffe|Nuts",team)) %>% 
+  ggplot(aes(x=team,y=zar,color=type)) +
+  geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type)), width=.2) +
+  coord_flip() -> tv
+
+ggplotly(tv)
+
+rosters %>% 
+  #filter(grepl("Plouffe|Oakmont|Nuts",team)) %>% 
+  select(team, manager, name_full, display_position, zar) %>% 
+  filter(grepl("Benintendi|Martin Perez",name_full)) 
+# %>%
+#   group_by(team) %>%
+#   summarize(zar = sum(zar))
+```
+
+```{r}
+rosters %>% 
+  filter(!grepl("Free Agent",team)
+  #        ,
+  # grepl("CF",positions)
+       ) %>%
+  ggplot(aes(x=team,y=zar,color=type)) +
+  geom_boxplot() +
+  # geom_jitter(aes(text=name_full), width = .2) +
+  coord_flip() -> tb
+
+ggplotly(tb)
+```
+
+```{r}
+#TODO measuring projected value of draft picks, move to separate research
+#TODO get beginning of year zar/war values
+rosters %>% 
+  filter(!is.na(draft_pick)) %>%
+  group_by(draft_round) %>% 
+  summarize(zar_median = median(zar) %>% janitor::round_half_up(),
+            zar_mean = mean(zar) %>% janitor::round_half_up()) %>%
+  ggplot(aes(x=draft_round,y=zar_mean)) +
+  geom_col() +
+  geom_line(aes(y=zar_median)) -> draft_plot
+
+ggplotly(draft_plot)
+
+rosters %>% 
+  filter(!is.na(draft_pick)) %>% 
+  group_by(draft_round) %>% 
+  arrange(draft_round) %>% 
+  ggplot(aes(x=draft_round,y=zar,group=draft_round)) +
+  geom_boxplot()
+
+rosters %>% 
+  filter(!is.na(draft_pick)) %>%
+  group_by(draft_round) %>% 
+  summarize(war_median = median(war) %>% janitor::round_half_up(),
+            war_mean = mean(war) %>% janitor::round_half_up()) %>%
+  ggplot(aes(x=draft_round,y=war_mean)) +
+  geom_col() +
+  geom_line(aes(y=war_median)) -> draft_plot_war
+
+ggplotly(draft_plot_war)
+
+rosters %>% 
+  filter(!is.na(draft_pick)) %>% 
+  group_by(draft_round) %>% 
+  arrange(draft_round) %>% 
+  ggplot(aes(x=draft_round,y=war,group=draft_round)) +
+  geom_boxplot()
 ```
