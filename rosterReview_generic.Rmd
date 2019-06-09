@@ -39,7 +39,7 @@ if (force_all && (batter_file %>% is.null() || pitcher_file %>% is.null())) {
 #TODO abstract some of these views
 rosters %>% 
   mutate(zar = round(zar)) %>% 
-  filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 0)) %>% 
+  filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 2)) %>% 
   ggplot(aes(x=team,y=zar,color=type)) +
   geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type))) +
   coord_flip() -> pa
@@ -47,7 +47,7 @@ rosters %>%
 ggplotly(pa)
 
 rosters %>% 
-  filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 0)) %>% 
+  filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 2)) %>% 
   arrange(zar %>% desc) %>% 
   select(name_full, positions, type, zar) %>% 
   View()
