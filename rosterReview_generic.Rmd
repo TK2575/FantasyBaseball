@@ -112,12 +112,14 @@ team_pos_avg_zar %>%
 
 ggplotly(team_avg_pos)
 
+#TODO 3 OFs, players with multiple positions, avoid bench players
 team_pos_avg_zar %>% 
   ungroup() %>% 
   group_by(team) %>% 
-  summarize(ovrl_avg_pos_zar = mean(avg_pos_zar),
+  summarize(sum_pos_zar = sum(avg_pos_zar),
+            mean_pos_zar = mean(avg_pos_zar),
             var_pos_zar = sd(avg_pos_zar)) %>% 
-  arrange(ovrl_avg_pos_zar %>% desc)
+  arrange(mean_pos_zar %>% desc)
 
 rosters_by_position %>% 
   filter(team != "Free Agent") %>% 
