@@ -40,11 +40,14 @@ load_players <- function(force = FALSE) {
   if (force || !file %>% file.exists()) {
     get_players(2500) %>%
       clean_names() %>%
-      mutate(type = case_when(
-        position_type == "B" ~ "batter",
-        position_type == "P" ~ "pitcher",
-        TRUE ~ "other"
-      )) %>% 
+      mutate(
+        type = case_when(
+          position_type == "B" ~ "batter",
+          position_type == "P" ~ "pitcher",
+          TRUE ~ "other"),
+        # Shoehei Ohtani treated as two separate players, breaking join
+        name_full = gsub(" (Pitcher)", "", name_full, fixed=TRUE),
+        name_full = gsub(" (Batter)", "", name_full, fixed=TRUE)) %>% 
       select(-position_type) %>% 
       saveRDS(file)
   }
