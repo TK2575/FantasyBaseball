@@ -49,7 +49,7 @@ ggplotly(pa)
 rosters %>% 
   filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 2)) %>% 
   arrange(zar %>% desc) %>% 
-  select(name_full, positions, type, zar) %>% 
+  select(team, name_full, positions, type, zar) %>% 
   View()
 ```
 
@@ -88,6 +88,7 @@ rosters_by_position %>%
 
 rosters_by_position %>% 
   select(team, manager, name_full, position, zar, pos_zar) %>% 
+  # filter(position %in% c('SP','RP')) %>% 
   View()
   
 rosters_by_position %>% 
