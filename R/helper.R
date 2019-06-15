@@ -5,20 +5,43 @@ source("R/z_scores.R")
 source("R/yahoo_api.R")
 
 #TODO ingest performance data from fangraphs
-#TODO create a "get latest compiled roster" method
 #TODO add overall/by type rankings
 #TODO rank/zar by position
+#TODO move all read_csv references to read_latest_file_csv
 
-filename_today <- function(name) {
-  paste0("data/", name, "_", gsub("-", "", Sys.Date()), ".Rds")
+filename_today <- function(name, extension) {
+  paste0("data/", name, "_", gsub("-", "", Sys.Date()), extension)
 }
 
-read_latest_data_file <- function(name) {
-  list.files("./data",
-             pattern ="yahoo_players",
+filename_today_rds <- function(name) {
+  filename_today(name, ".Rds")
+}
+
+filename_today_csv <- function(name) {
+  filename_today(name, ".csv")
+}
+
+find_latest_data_file <- function(name) {
+  #FIXME search by extension
+  rslt <- list.files("./data",
+             pattern = name,
              full.names = TRUE) %>% 
-    tail(1) %>% 
+    tail(1)
+  
+  paste0("Found file = ", rslt) %>% print()
+  
+  rslt
+}
+
+read_latest_file_rds <- function(name) {
+   find_latest_data_file(name) %>% 
     readRDS()
+}
+
+read_latest_file_csv <- function(name) {
+  find_latest_data_file(name) %>% 
+    read_csv() %>% 
+    clean_names()
 }
 
 load_draft_results <- function() {
@@ -33,13 +56,13 @@ load_draft_results <- function() {
 }
 
 load_rosters <- function(force = FALSE) {
-  file <- "rosters"
+  file <- "team_rosters"
   
   if (force) {
     get_team_rosters() %>%
-      saveRDS(filename_today(file))
+      saveRDS(filename_today_rds(file))
   }
-  read_latest_data_file(file)
+  read_latest_file_rds(file)
 }
 
 load_players <- function(force = FALSE) {
@@ -57,47 +80,39 @@ load_players <- function(force = FALSE) {
         name_full = gsub(" (Pitcher)", "", name_full, fixed=TRUE),
         name_full = gsub(" (Batter)", "", name_full, fixed=TRUE)) %>% 
       select(-position_type) %>% 
-      saveRDS(filename_today(file))
+      saveRDS(filename_today_rds(file))
   }
-  read_latest_data_file(file)
+  read_latest_file_rds(file)
 }
 
-#TODO
-load_projections <-
-  function(force = FALSE,
-           batter_file = NULL,
-           pitcher_file = NULL) {
-    file_start <- "data/depthChartProjections_ros_"
-    date_string <- Sys.Date() %>% str_replace_all("-", "")
-    batter_destination <-
-      paste0(file_start, "batters_", date_string, ".csv")
-    pitcher_destination <-
-      paste0(file_start, "pitchers_", date_string, ".csv")
-    
-    if (force || !batter_destination %>% file.exists()) {
-      if (batter_file %>% is_null() || !batter_file %>% file.exists()) {
-        stop(
-          "Could not find today's batter projections in expected folder, or replacement not specified"
-        )
-      } else {
-        file.copy(batter_file, batter_destination, overwrite=TRUE)
-      }
+load_projections <- function(force = FALSE,
+                             batter_projection_file = NULL,
+                             pitcher_projection_file = NULL) {
+  
+  file_start <- "depthChartProjections_ros_"
+  batter_file <- paste0(file_start, "batters") 
+  pitcher_file <- paste0(file_start, "pitchers") 
+  
+  if (force) {
+    if (batter_projection_file %>% is_null() || 
+        batter_projection_file %>% !file.exists() ||
+        pitcher_projection_file %>% is_null() ||
+        pitcher_projection_file %>% !file.exists()) {
+      stop(
+        "Could not find today's batter or pitcher projections in expected folder, or replacement not specified"
+      )
+    } else {
+      file.copy(batter_projection_file, filename_today_csv(batter_file), overwrite=TRUE)
+      file.copy(pitcher_projection_file, filename_today_csv(pitcher_file), overwrite=TRUE)
     }
-    
-    if (force || !pitcher_destination %>% file.exists()) {
-      if (pitcher_file %>% is_null() || !pitcher_file %>% file.exists()) {
-        stop(
-          "Could not find today's pitcher projections in expected folder, or replacement not specified"
-        )
-      } else {
-        file.copy(pitcher_file, pitcher_destination, overwrite=TRUE)
-      }
-    }
-    
-    compile_z_scores(batter_destination, pitcher_destination) %>% 
-      rename(mlb_team = team)
-    
   }
+  
+  batter <- find_latest_data_file(batter_file)
+  pitcher <- find_latest_data_file(pitcher_file)
+  
+  compile_z_scores(batter, pitcher) %>% 
+    rename(mlb_team = team)
+}
 
 compile_z_scores <- function(batter_file, pitcher_file) {
   proj_batter <- add_z_scores(batter_file, "batter")
@@ -121,27 +136,36 @@ adjust_names_for_join <- function(df) {
 }
 
 load_players_with_projections <-
-  function(force = FALSE,
-           force_all = FALSE,
+  function(force_fetch = FALSE,
+           force_join = FALSE,
            batter_file = NULL,
            pitcher_file = NULL) {
     file <- "rosters_with_projections"
     
-    if (force || force_all || !file %>% file.exists()) {
-      load_rosters(force_all) %>%
+    if (force_fetch) {
+      force_join == TRUE
+    }
+    
+    if (force_join) {
+      result <- load_rosters(force_fetch) %>%
         select(player_id, team, manager) %>%
-        full_join(load_players(force_all)) %>%
+        full_join(load_players(force_fetch)) %>%
         full_join(load_draft_results(), by = c("name_full" = "player")) %>%
-        inner_join(load_projections(force_all, batter_file, pitcher_file),
+        inner_join(load_projections(force_fetch, batter_file, pitcher_file),
                   by = c("name_full" = "name", "type" = "type")) %>%
         mutate(team = if_else(is.na(team), "Free Agent", team),
                team = fct_reorder(team, z_sum)) %>%
         compact_positions() %>% 
-        rescale_z_sum() %>% 
-        saveRDS(filename_today(file))
+        rescale_z_sum()
+      
+        if (force_fetch) { 
+          result %>% 
+            saveRDS(filename_today_rds(file))
+        }
+      result
+    } else {
+      read_latest_file_rds(file) 
     }
-    
-    read_latest_data_file(file)
   }
 
 rescale_z_sum <- function(df) {
