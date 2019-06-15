@@ -89,6 +89,8 @@ rosters_by_position %>%
 rosters_by_position %>% 
   select(team, manager, name_full, position, zar, pos_zar) %>% 
   # filter(position %in% c('SP','RP')) %>% 
+  filter(grepl("Plouffe",team)) %>% 
+  arrange(pos_zar %>% desc) %>% 
   View()
   
 rosters_by_position %>% 

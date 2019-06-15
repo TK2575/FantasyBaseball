@@ -13,6 +13,14 @@ filename_today <- function(name) {
   paste0("data/", name, "_", gsub("-", "", Sys.Date()), ".Rds")
 }
 
+read_latest_data_file <- function(name) {
+  list.files("./data",
+             pattern ="yahoo_players",
+             full.names = TRUE) %>% 
+    tail(1) %>% 
+    readRDS()
+}
+
 load_draft_results <- function() {
   read_tsv("data/draftResults.tsv") %>%
     clean_names() %>%
@@ -25,19 +33,19 @@ load_draft_results <- function() {
 }
 
 load_rosters <- function(force = FALSE) {
-  file <- filename_today("rosters")
+  file <- "rosters"
   
-  if (force || !file %>% file.exists()) {
+  if (force) {
     get_team_rosters() %>%
-      saveRDS(file)
+      saveRDS(filename_today(file))
   }
-  readRDS(file)
+  read_latest_data_file(file)
 }
 
 load_players <- function(force = FALSE) {
-  file <- filename_today("yahoo_players")
+  file <- "yahoo_players"
   
-  if (force || !file %>% file.exists()) {
+  if (force) {
     get_players(2500) %>%
       clean_names() %>%
       mutate(
@@ -45,15 +53,16 @@ load_players <- function(force = FALSE) {
           position_type == "B" ~ "batter",
           position_type == "P" ~ "pitcher",
           TRUE ~ "other"),
-        # Shoehei Ohtani treated as two separate players, breaking join
+        # two-way players treated as two separate players, breaking join
         name_full = gsub(" (Pitcher)", "", name_full, fixed=TRUE),
         name_full = gsub(" (Batter)", "", name_full, fixed=TRUE)) %>% 
       select(-position_type) %>% 
-      saveRDS(file)
+      saveRDS(filename_today(file))
   }
-  readRDS(file)
+  read_latest_data_file(file)
 }
 
+#TODO
 load_projections <-
   function(force = FALSE,
            batter_file = NULL,
@@ -116,7 +125,7 @@ load_players_with_projections <-
            force_all = FALSE,
            batter_file = NULL,
            pitcher_file = NULL) {
-    file <- filename_today("rosters_with_projections")
+    file <- "rosters_with_projections"
     
     if (force || force_all || !file %>% file.exists()) {
       load_rosters(force_all) %>%
@@ -129,10 +138,10 @@ load_players_with_projections <-
                team = fct_reorder(team, z_sum)) %>%
         compact_positions() %>% 
         rescale_z_sum() %>% 
-        saveRDS(file)
+        saveRDS(filename_today(file))
     }
     
-    readRDS(file)
+    read_latest_data_file(file)
   }
 
 rescale_z_sum <- function(df) {
