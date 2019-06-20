@@ -18,16 +18,16 @@ source("R/helper.R")
 
 
 ```{r}
-force <- TRUE
-force_all <- TRUE
+force_fetch <- TRUE
+force_join <- TRUE
 batter_file <- "temp/FanGraphs Leaderboard.csv"
 pitcher_file <- "temp/FanGraphs Leaderboard (1).csv"
 
-if (force_all && (batter_file %>% is.null() || pitcher_file %>% is.null())) {
+if (force_fetch && (batter_file %>% is.null() || pitcher_file %>% is.null())) {
   stop("Need projection files to force a recalc")
 } else {
-  rosters <- load_players_with_projections(force, 
-                                           force_all, 
+  rosters <- load_players_with_projections(force_fetch, 
+                                           force_join, 
                                            batter_file, 
                                            pitcher_file)
 }
@@ -49,8 +49,9 @@ ggplotly(pa)
 rosters %>% 
   filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 2)) %>% 
   arrange(zar %>% desc) %>% 
+  mutate(zar = zar %>% round(digits=1)) %>% 
   select(team, name_full, positions, type, zar) %>% 
-  View()
+  View("Available Free Agents")
 ```
 
 
@@ -90,8 +91,10 @@ rosters_by_position %>%
   select(team, manager, name_full, position, zar, pos_zar) %>% 
   # filter(position %in% c('SP','RP')) %>% 
   filter(grepl("Plouffe",team)) %>% 
-  arrange(pos_zar %>% desc) %>% 
-  View()
+  arrange(pos_zar %>% desc) %>%
+  mutate(pos_zar = pos_zar %>% round(1),
+         zar = zar %>% round(1)) %>% 
+  View("ZAR by Position")
   
 rosters_by_position %>% 
   filter(team != "Free Agent") %>% 
@@ -134,15 +137,16 @@ rosters_by_position %>%
 ```{r}
 # TODO find way to wrap these three views into one
 rosters %>% 
-  filter(grepl("Plouffe|Nuts",team)) %>% 
+  filter(grepl("Plouffe|Bump",team)) %>% 
   select(team, manager, name_full, display_position, zar, positions) %>% 
   arrange(zar %>% desc) %>% 
-  View()
+  mutate(zar = zar %>% round(1)) %>% 
+  View("Trade Partner")
   # mutate(zar = janitor::round_half_up(zar)) %>% 
   # write_csv("data/tradeReview_20190423.csv")
 
 rosters %>% 
-  filter(grepl("Plouffe|Nuts",team)) %>% 
+  filter(grepl("Plouffe|Bump",team)) %>% 
   ggplot(aes(x=team,y=zar,color=type)) +
   geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type)), width=.2) +
   coord_flip() -> tv

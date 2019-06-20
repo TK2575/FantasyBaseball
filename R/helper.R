@@ -95,9 +95,9 @@ load_projections <- function(force = FALSE,
   
   if (force) {
     if (batter_projection_file %>% is_null() || 
-        batter_projection_file %>% !file.exists() ||
+        !batter_projection_file %>% file.exists() ||
         pitcher_projection_file %>% is_null() ||
-        pitcher_projection_file %>% !file.exists()) {
+        !pitcher_projection_file %>% file.exists()) {
       stop(
         "Could not find today's batter or pitcher projections in expected folder, or replacement not specified"
       )
