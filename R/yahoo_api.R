@@ -28,10 +28,12 @@ authenticate <- function() {
                      secret = keys[2]
   )
   
-  token <- oauth2.0_token(oauth_endpoints("yahoo"), 
+  token <- suppressWarnings(
+    oauth2.0_token(oauth_endpoints("yahoo"), 
                                 myapp,
                                 use_oob = TRUE, 
                                 oob_value = "oob"
+    )
   )
   
   config(token = token)
@@ -58,12 +60,14 @@ get_json <- function(path) {
                      simplifyVector = F)
   
   if (status_code(resp) != 200) {
+    saveRDS(parsed, "parsed.Rds")
+    #FIXME status code, parsed info not displaying
     stop(
       sprintf(
-        "Yahoo API request failed [%s]\n%s\n<%s>",
+        "Yahoo API request failed",
         status_code(resp),
-        parsed$message,
-        parsed$documentation_url
+        parsed$error$description,
+        parsed$error$detail
       ),
       call. = F
     )
@@ -103,21 +107,26 @@ get_players <- function(rownum=25, start=0) {
 }
 
 get_players_page <- function(start=0) {
-  path <- paste0("users;use_login=1/games;game_keys=mlb/players;start=",start,";count=25")
+  path <- paste0("games;game_keys=mlb/players;start=",start,";count=25")
   
   get_json(path) %>% 
     content() -> players_resp
   
-  players_resp$fantasy_content$users$`0`$user[[2]]$games$`0`$game[[2]][[1]] -> players_filtered
+  players_resp$fantasy_content$games$`0`$game[[2]][[1]] -> players_filtered
   
   count <- players_filtered$count
   
-  lapply(players_filtered[1:count], function(x) x[[1]][[1]] %>% 
+  if (!is.null(count)) {
+    lapply(players_filtered[1:count], function(x) x[[1]][[1]] %>% 
            rlang::flatten() %>% 
            as.data.frame(stringsAsFactors = F)) %>% 
     bind_rows() %>% 
     as_tibble() %>% 
     mutate(name.full = stri_trans_general(name.full, "latin-ascii"))
+  }
+  else {
+    tibble()
+  }
 }
 
 league_string <- function(game_key=388) {
