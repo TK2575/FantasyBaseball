@@ -194,6 +194,7 @@ compact_positions <- function(df) {
     mutate(positions = if_else(positions == "",position,positions))
 }
 
+#TODO replace DH with util
 row_per_position <- function(df) {
   df <- df %>%
     mutate(C = grepl("C", display_position)) %>%
@@ -205,7 +206,8 @@ row_per_position <- function(df) {
     mutate(CF = grepl("CF", positions)) %>% 
     mutate(RF = grepl("RF", positions)) %>% 
     mutate(SP = grepl("SP", positions)) %>% 
-    mutate(RP = grepl("RP", positions))
+    mutate(RP = grepl("RP", positions)) %>% 
+    mutate(DH = grepl("DH", positions))
   
   C <- df %>%
     filter(C) %>%
@@ -247,6 +249,10 @@ row_per_position <- function(df) {
     filter(RP) %>% 
     mutate(position = "RP")
   
+  DH <- df %>% 
+    filter(DH) %>% 
+    mutate(position = "DH")
+  
   C %>%
     bind_rows(`1B`) %>%
     bind_rows(`2B`) %>%
@@ -257,8 +263,9 @@ row_per_position <- function(df) {
     bind_rows(RF) %>% 
     bind_rows(SP) %>% 
     bind_rows(RP) %>% 
+    bind_rows(DH) %>% 
     unique() %>%
     arrange(z_sum %>% desc) %>%
     mutate(z_rank = row_number(),
-           position = fct_relevel(position, "C","1B", "2B","3B","SS","LF","CF","RF","SP","RP"))
+           position = fct_relevel(position, "C","1B", "2B","3B","SS","LF","CF","RF","DH","SP","RP"))
 }
