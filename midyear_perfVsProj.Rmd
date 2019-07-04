@@ -1,0 +1,56 @@
+---
+title: "Midyear Performance vs Projection"
+author: "Tom Kain"
+date: "7/3/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(glue)
+library(plotly)
+
+source("R/helper.R")
+```
+
+
+```{r}
+#Latest rosters with projections
+pitchers <- load_players_with_projections() %>% 
+  filter(type == 'pitcher')
+
+#Manually loading latest performance from fangraphs
+pitcher_perf <- "temp/FanGraphs Leaderboard.csv" %>% 
+  add_z_scores("pitcher") %>% 
+  clean_names() %>% 
+  select(type, playerid, name:so,era:war, z_sv:z_sum) %>% 
+  mutate(playerid = as.character(playerid))
+
+rosters_perf <- pitcher_perf %>% 
+  rename(z_perf = z_sum) %>% 
+  select(playerid, z_perf) %>% 
+  right_join(pitchers)
+
+rosters_perf %>% 
+  filter(team != 'Free Agent') %>% 
+  summarize(perf_adj = median(z_perf, na.rm = TRUE),
+            proj_adj = median(z_sum, na.rm = TRUE)) %>% 
+  summarize(adj = proj_adj - perf_adj) %>% 
+  pull() -> adj
+
+rosters_perf %>% 
+  mutate(z_perf = z_perf + adj) -> rosters_perf
+```
+
+```{r}
+rosters_perf %>% 
+  filter(grepl("SP",positions)) %>% 
+  ggplot(aes(z_sum,z_perf,color=team)) +
+  geom_point(aes(text=name_full)) +
+  geom_abline(slope = 1)-> p
+
+ggplotly(p)
+```
