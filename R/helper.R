@@ -274,8 +274,8 @@ row_per_position <- function(df) {
 # 1B - Bell
 # C - Contreras
 # Bench - Puig (zar < RF && zar < Util)
-# Bench - Posey (zar < C && zar < Util zar < 1B)
 # 2B - Carpenter
+# Bench - Posey (zar < C && zar < Util zar < 1B)
 # 3B - Devers
 # Bench - Murphy (zar < 2B && zar < 1B && zar < Util)
 
@@ -299,5 +299,26 @@ optimal_lineup <- function(df) {
     batter_ids <- batters$player_id %>% 
       as_factor() %>%
       levels()
+    
+    for (i in 1:length(batter_ids)) {
+      batter <- batters %>% 
+        filter(player_id == batter_ids[i]) %>% 
+        filter(row_number() == 1)
+      
+      if (team_result$player_id[team_result$position == batter$position] %>% is.na()) {
+        team_result$player_id[team_result$position == batter$position] <- batter$player_id
+      } else if (team_result$player_id[team_result$position == "Util"] %>% is.na()) {
+        team_result$player_id[team_result$position == "Util"] <- batter$player_id
+      }
+    }
+    
+    #TODO setup final df with join
+    
+    if (result %>% is.null()) {
+      result <- team_result()
+    } else {
+      result %>% 
+        bind_rows(team_result)
+    }
   }
 } 

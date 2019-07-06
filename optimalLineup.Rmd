@@ -7,10 +7,17 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(glue)
+library(plotly)
+
+source("R/helper.R")
 ```
 
 
 ```{r}
+rosters <- load_players_with_projections()
+
 rosters_by_position <- row_per_position(rosters)
 
 rosters_by_position %>% 
@@ -37,22 +44,61 @@ team <- rosters_by_position %>%
 
 positions <- c("C","1B","2B","3B","SS","LF","CF","RF","Util")
 
-result <- tibble(
-  position = positions,
-  player_id = NA
-)
-
+```
+```{r}
 batters <- team %>%
   filter(type == "batter") %>% 
-  arrange(pos_zar %>% desc(), zar %>% desc() ) %>% 
-  select(player_id, name_full, position, pos_zar, zar)
+  select(player_id, name_full, position, pos_zar, zar) %>% 
+  arrange(zar %>% desc(), pos_zar %>% desc) 
+  
 
 batter_ids <- batters$player_id %>% 
   as_factor() %>%
   levels()
 
+team_result <- tibble(
+  position = positions,
+  player_id = NA
+)
 
-for (i in 0:length(batter_ids)) {
-  print(i+1)
+i <- 1
+
+```
+```{r}
+
+batter_id <- batter_ids[i]
+
+batter <- batters %>% 
+  filter(player_id == batter_id)
+
+batters <- batters %>% 
+  add_row(
+    player_id = batter$player_id[1],
+    name_full = batter$name_full[1],
+    position = "Util",
+    pos_zar = 0,
+    zar = batter$zar[1]
+  ) %>% 
+  arrange(zar %>% desc(), pos_zar %>% desc)
+
+for (j in 1:length(batter$position)) {
+  assign <- FALSE
+  if (team_result$player_id[team_result$position == batter$position[j]] %>% is.na()) {
+    team_result$player_id[team_result$position == batter$position[j]] <- batter_id
+    assign <- TRUE
+    break;
+  }
+  #FIXME is getting called despite prior assignment
+  if (!assign && team_result$player_id[team_result$position == "Util"] %>% is.na()) {
+    team_result$player_id[team_result$position == "Util"] <- batter_id
+  }
 }
+
+i <- i+1
+
+batters
+
+#FIXME need Util in batters data set
+team_result %>% 
+  left_join(batters, c("player_id","position"))
 ```
