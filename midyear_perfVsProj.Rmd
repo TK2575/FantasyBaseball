@@ -23,7 +23,7 @@ pitchers <- load_players_with_projections() %>%
   filter(type == 'pitcher')
 
 #Manually loading latest performance from fangraphs
-pitcher_perf <- "temp/FanGraphs Leaderboard.csv" %>% 
+pitcher_perf <- "temp/FanGraphs Leaderboard - perf.csv" %>% 
   add_z_scores("pitcher") %>% 
   clean_names() %>% 
   select(type, playerid, name:so,era:war, z_sv:z_sum) %>% 
