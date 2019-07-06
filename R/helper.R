@@ -265,6 +265,20 @@ row_per_position <- function(df) {
 }
 
 #TODO WIP
+# Assign by pos_zar (for each player, check if there are other rows beneath)
+# LF - Soto
+# RF - Bellinger
+# SS - Lindor
+# CF - Gallo (zar < LF && zar < RF)
+# Util - Story
+# 1B - Bell
+# C - Contreras
+# Bench - Puig (zar < RF && zar < Util)
+# Bench - Posey (zar < C && zar < Util zar < 1B)
+# 2B - Carpenter
+# 3B - Devers
+# Bench - Murphy (zar < 2B && zar < 1B && zar < Util)
+
 optimal_lineup <- function(df) {
   positions <- c("C","1B","2B","3B","SS","LF","CF","RF","Util")
   
