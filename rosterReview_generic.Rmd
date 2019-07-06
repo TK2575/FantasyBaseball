@@ -18,8 +18,8 @@ source("R/helper.R")
 
 
 ```{r}
-force_fetch <- TRUE
-force_join <- TRUE
+force_fetch <- FALSE
+force_join <- FALSE
 batter_file <- "temp/FanGraphs Leaderboard.csv"
 pitcher_file <- "temp/FanGraphs Leaderboard (1).csv"
 
@@ -57,16 +57,7 @@ rosters %>%
 
 ```{r}
 #TODO move to separate research
-
 rosters_by_position <- row_per_position(rosters)
-
-rosters_by_position %>% 
-  filter(team != "Free Agent") %>% 
-  ggplot(aes(position, zar, color = position, alpha = zar)) +
-  geom_point(aes(text=name_full)) +
-  facet_wrap(~ team) -> team_pos
-
-ggplotly(team_pos)
 
 rosters_by_position %>% 
   filter(!is.na(manager)) %>% 
@@ -86,6 +77,16 @@ rosters_by_position %>%
   full_join(pos_median_zar) %>% 
   #FIXME two decimal places for pos_zar
   mutate(pos_zar = zar - median_zar) -> rosters_by_position
+
+```
+```{r}
+rosters_by_position %>% 
+  filter(team != "Free Agent") %>% 
+  ggplot(aes(position, zar, color = position, alpha = zar)) +
+  geom_point(aes(text=name_full)) +
+  facet_wrap(~ team) -> team_pos
+
+ggplotly(team_pos)
 
 rosters_by_position %>% 
   select(team, manager, name_full, position, zar, pos_zar) %>% 
@@ -137,7 +138,7 @@ rosters_by_position %>%
 ```{r}
 # TODO find way to wrap these three views into one
 rosters %>% 
-  filter(grepl("Plouffe|Bump",team)) %>% 
+  filter(grepl("Plouffe|Mata",team)) %>% 
   select(team, manager, name_full, display_position, zar, positions) %>% 
   arrange(zar %>% desc) %>% 
   mutate(zar = zar %>% round(1)) %>% 
@@ -146,7 +147,7 @@ rosters %>%
   # write_csv("data/tradeReview_20190423.csv")
 
 rosters %>% 
-  filter(grepl("Plouffe|Bump",team)) %>% 
+  filter(grepl("Plouffe|Mata",team)) %>% 
   ggplot(aes(x=team,y=zar,color=type)) +
   geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type)), width=.2) +
   coord_flip() -> tv

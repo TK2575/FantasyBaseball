@@ -206,8 +206,7 @@ row_per_position <- function(df) {
     mutate(CF = grepl("CF", positions)) %>% 
     mutate(RF = grepl("RF", positions)) %>% 
     mutate(SP = grepl("SP", positions)) %>% 
-    mutate(RP = grepl("RP", positions)) %>% 
-    mutate(DH = grepl("DH", positions))
+    mutate(RP = grepl("RP", positions)) 
   
   C <- df %>%
     filter(C) %>%
@@ -249,10 +248,6 @@ row_per_position <- function(df) {
     filter(RP) %>% 
     mutate(position = "RP")
   
-  DH <- df %>% 
-    filter(DH) %>% 
-    mutate(position = "DH")
-  
   C %>%
     bind_rows(`1B`) %>%
     bind_rows(`2B`) %>%
@@ -263,9 +258,32 @@ row_per_position <- function(df) {
     bind_rows(RF) %>% 
     bind_rows(SP) %>% 
     bind_rows(RP) %>% 
-    bind_rows(DH) %>% 
     unique() %>%
     arrange(z_sum %>% desc) %>%
     mutate(z_rank = row_number(),
-           position = fct_relevel(position, "C","1B", "2B","3B","SS","LF","CF","RF","DH","SP","RP"))
+           position = fct_relevel(position, "C","1B","2B","3B","SS","LF","CF","RF","SP","RP"))
 }
+
+#TODO WIP
+optimal_lineup <- function(df) {
+  positions <- c("C","1B","2B","3B","SS","LF","CF","RF","Util")
+  
+  result <- NULL
+  
+  for (team in df$team %>% levels()) {
+    team_result <- tibble(
+      position = positions,
+      player_id = NA
+    )
+    
+    batters <- df %>%
+      filter(type == "batter", 
+             team == team) %>% 
+      arrange(pos_zar %>% desc(), zar %>% desc() ) %>% 
+      select(player_id, name_full, position, pos_zar, zar)
+    
+    batter_ids <- batters$player_id %>% 
+      as_factor() %>%
+      levels()
+  }
+} 
