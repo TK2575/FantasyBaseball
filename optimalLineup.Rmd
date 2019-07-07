@@ -21,28 +21,12 @@ source("R/helper.R")
 rosters <- load_players_with_projections()
 
 rosters_by_position <- row_per_position(rosters)
+```
 
-rosters_by_position %>% 
-  filter(!is.na(manager)) %>% 
-  group_by(position) %>% 
-  count() %>% 
-  ungroup() -> rostered_count_by_pos
-
-rosters_by_position %>% 
-  group_by(position) %>% 
-  arrange(zar %>% desc()) %>% 
-  mutate(num = row_number()) %>% 
-  full_join(rostered_count_by_pos, "position") %>% 
-  filter(num <= n) %>% 
-  summarize(median_zar = median(zar)) -> pos_median_zar
-
-rosters_by_position %>% 
-  full_join(pos_median_zar) %>% 
-  #FIXME two decimal places for pos_zar
-  mutate(pos_zar = zar - median_zar) -> rosters_by_position
+```{r}
 
 team <- rosters_by_position %>% 
-  filter(team == "Plouffe There It Is!")
+  filter(team == "Deez Nuts")
 
 positions <- c("C","1B","2B","3B","SS","LF","CF","RF","Util")
 
@@ -52,7 +36,7 @@ positions <- c("C","1B","2B","3B","SS","LF","CF","RF","Util")
 ```{r}
 batters <- team %>%
   filter(type == "batter") %>% 
-  select(player_id, name_full, position, pos_zar, zar) %>% 
+  select(team, player_id, name_full, position, pos_zar, zar) %>% 
   arrange(zar %>% desc(), pos_zar %>% desc) 
   
 
@@ -77,6 +61,7 @@ batter <- batters %>%
 
 batters <- batters %>% 
   add_row(
+    team = team$team[1],
     player_id = batter$player_id[1],
     name_full = batter$name_full[1],
     position = "Util",
@@ -87,15 +72,16 @@ batters <- batters %>%
 
 for (j in 1:length(batter$position)) {
   if (team_result$player_id[team_result$position == batter$position[j]] %>% is.na()) {
-    team_result$player_id[team_result$position == batter$position[j]] <- batter_id
-    print(paste0("Assigned ",batter_id," to ",batter$position[j]))
+    batter_id -> team_result$player_id[team_result$position == batter$position[j]]
+    print(paste0("Assigned ",batter$name_full," to ",batter$position[j]))
+    
     break
   }
 }
 
 if (!batter_id %in% (team_result$player_id %>% as_factor() %>% levels())) {
   if (team_result$player_id[team_result$position == "Util"] %>% is.na()) {
-    team_result$player_id[team_result$position == "Util"] <- batter_id
+    batter_id -> team_result$player_id[team_result$position == "Util"]
   }
   else {
     print(paste0("sending batter_id ", batter_id, " to bench"))
@@ -104,6 +90,18 @@ if (!batter_id %in% (team_result$player_id %>% as_factor() %>% levels())) {
 
 i <- i+1
 
-team_result %>% 
-  left_join(batters, c("player_id","position"))
+result <- batters %>% 
+  mutate(position = as.character(position)) %>% 
+  inner_join(team_result, c("player_id","position"))
+
+result
+```
+
+```{r}
+result %>% 
+  mutate(pos_zar = if_else(
+    position == "Util",
+    zar,
+    pos_zar
+  ))
 ```

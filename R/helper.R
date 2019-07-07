@@ -6,7 +6,6 @@ source("R/yahoo_api.R")
 
 #TODO ingest performance data from fangraphs
 #TODO add overall/by type rankings
-#TODO rank/zar by position
 #TODO move all read_csv references to read_latest_file_csv
 
 filename_today <- function(name, extension) {
@@ -194,7 +193,6 @@ compact_positions <- function(df) {
     mutate(positions = if_else(positions == "",position,positions))
 }
 
-#TODO replace DH with util
 row_per_position <- function(df) {
   df <- df %>%
     mutate(C = grepl("C", display_position)) %>%
@@ -248,7 +246,7 @@ row_per_position <- function(df) {
     filter(RP) %>% 
     mutate(position = "RP")
   
-  C %>%
+  rosters_by_position <- C %>%
     bind_rows(`1B`) %>%
     bind_rows(`2B`) %>%
     bind_rows(`3B`) %>%
@@ -262,63 +260,97 @@ row_per_position <- function(df) {
     arrange(z_sum %>% desc) %>%
     mutate(z_rank = row_number(),
            position = fct_relevel(position, "C","1B","2B","3B","SS","LF","CF","RF","SP","RP"))
+  
+  rosters_by_position %>% 
+    filter(!is.na(manager)) %>% 
+    group_by(position) %>% 
+    count() %>% 
+    ungroup() -> rostered_count_by_pos
+  
+  rosters_by_position %>% 
+    group_by(position) %>% 
+    arrange(zar %>% desc()) %>% 
+    mutate(num = row_number()) %>% 
+    full_join(rostered_count_by_pos, "position") %>% 
+    filter(num <= n) %>% 
+    summarize(median_zar = median(zar)) -> pos_median_zar
+  
+  rosters_by_position %>% 
+    full_join(pos_median_zar) %>% 
+    mutate(pos_zar = zar - median_zar)
 }
-
-#TODO WIP
-# Assign by pos_zar (for each player, check if there are other rows beneath)
-# LF - Soto
-# RF - Bellinger
-# SS - Lindor
-# CF - Gallo (zar < LF && zar < RF)
-# Util - Story
-# 1B - Bell
-# C - Contreras
-# Bench - Puig (zar < RF && zar < Util)
-# 2B - Carpenter
-# Bench - Posey (zar < C && zar < Util zar < 1B)
-# 3B - Devers
-# Bench - Murphy (zar < 2B && zar < 1B && zar < Util)
 
 optimal_lineup <- function(df) {
   positions <- c("C","1B","2B","3B","SS","LF","CF","RF","Util")
   
   result <- NULL
   
-  for (team in df$team %>% levels()) {
+  df <- df %>% 
+    filter(team != "Free Agent") %>% 
+    droplevels()
+  
+  for (each in df$team %>% levels()) {
+    print(paste0("Working on team = ", each))
+    
     team_result <- tibble(
       position = positions,
       player_id = NA
     )
     
     batters <- df %>%
-      filter(type == "batter", 
-             team == team) %>% 
-      arrange(pos_zar %>% desc(), zar %>% desc() ) %>% 
-      select(player_id, name_full, position, pos_zar, zar)
+      filter(type == "batter",
+             team == each) %>% 
+      select(team, player_id, name_full, position, pos_zar, zar) %>% 
+      arrange(zar %>% desc(), pos_zar %>% desc()) 
     
     batter_ids <- batters$player_id %>% 
       as_factor() %>%
       levels()
     
     for (i in 1:length(batter_ids)) {
-      batter <- batters %>% 
-        filter(player_id == batter_ids[i]) %>% 
-        filter(row_number() == 1)
+      batter_id <- batter_ids[i]
       
-      if (team_result$player_id[team_result$position == batter$position] %>% is.na()) {
-        team_result$player_id[team_result$position == batter$position] <- batter$player_id
-      } else if (team_result$player_id[team_result$position == "Util"] %>% is.na()) {
-        team_result$player_id[team_result$position == "Util"] <- batter$player_id
+      batter <- batters %>% 
+        filter(player_id == batter_id) 
+      
+      batters <- batters %>% 
+        add_row(
+          team = each,
+          player_id = batter_id,
+          name_full = batter$name_full[1],
+          position = "Util",
+          pos_zar = -100, # force to bottom of arrange 
+          zar = batter$zar[1]
+        ) %>% 
+        arrange(zar %>% desc(), pos_zar %>% desc())
+      
+      for (j in 1:length(batter$position)) {
+        if (team_result$player_id[team_result$position == batter$position[j]] %>% is.na()) {
+          team_result$player_id[team_result$position == batter$position[j]] <- batter_id
+          break
+        }
+      }
+      
+      if (!batter_id %in% (team_result$player_id %>% 
+                           as_factor() %>% 
+                           levels()) && 
+          team_result$player_id[team_result$position == "Util"] %>% is.na()) {
+        team_result$player_id[team_result$position == "Util"] <- batter_id
       }
     }
     
-    #TODO setup final df with join
+    team_result <- batters %>% 
+      mutate(position = as.character(position)) %>% 
+      inner_join(team_result, c("player_id","position")) 
     
     if (result %>% is.null()) {
-      result <- team_result()
+      result <- team_result
     } else {
-      result %>% 
+      result <- result %>% 
         bind_rows(team_result)
     }
   }
+  
+  result %>%
+    mutate(pos_zar = if_else(position=="Util",zar,pos_zar))
 } 
