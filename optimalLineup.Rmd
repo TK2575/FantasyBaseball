@@ -3,6 +3,8 @@ title: "Optimal Lineup"
 author: "Tom Kain"
 date: "July 6, 2019"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -45,6 +47,8 @@ team <- rosters_by_position %>%
 positions <- c("C","1B","2B","3B","SS","LF","CF","RF","Util")
 
 ```
+
+
 ```{r}
 batters <- team %>%
   filter(type == "batter") %>% 
@@ -76,29 +80,30 @@ batters <- batters %>%
     player_id = batter$player_id[1],
     name_full = batter$name_full[1],
     position = "Util",
-    pos_zar = 0,
+    pos_zar = -100,
     zar = batter$zar[1]
   ) %>% 
   arrange(zar %>% desc(), pos_zar %>% desc)
 
 for (j in 1:length(batter$position)) {
-  assign <- FALSE
   if (team_result$player_id[team_result$position == batter$position[j]] %>% is.na()) {
     team_result$player_id[team_result$position == batter$position[j]] <- batter_id
-    assign <- TRUE
-    break;
+    print(paste0("Assigned ",batter_id," to ",batter$position[j]))
+    break
   }
-  #FIXME is getting called despite prior assignment
-  if (!assign && team_result$player_id[team_result$position == "Util"] %>% is.na()) {
+}
+
+if (!batter_id %in% (team_result$player_id %>% as_factor() %>% levels())) {
+  if (team_result$player_id[team_result$position == "Util"] %>% is.na()) {
     team_result$player_id[team_result$position == "Util"] <- batter_id
+  }
+  else {
+    print(paste0("sending batter_id ", batter_id, " to bench"))
   }
 }
 
 i <- i+1
 
-batters
-
-#FIXME need Util in batters data set
 team_result %>% 
   left_join(batters, c("player_id","position"))
 ```
