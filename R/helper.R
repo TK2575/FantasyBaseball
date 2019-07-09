@@ -290,8 +290,6 @@ optimal_lineup <- function(df) {
     droplevels()
   
   for (each in df$team %>% levels()) {
-    print(paste0("Working on team = ", each))
-    
     team_result <- tibble(
       position = positions,
       player_id = NA
