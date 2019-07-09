@@ -349,6 +349,9 @@ optimal_lineup <- function(df) {
     }
   }
   
-  result %>%
-    mutate(pos_zar = if_else(position=="Util",zar,pos_zar))
+  df %>% 
+    select(team, manager) %>% 
+    distinct() %>% 
+    right_join(result, "team") %>%
+    mutate(pos_zar = if_else(position=="Util",zar,pos_zar)) 
 } 
