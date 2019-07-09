@@ -18,8 +18,8 @@ source("R/helper.R")
 
 
 ```{r get_data}
-force_fetch <- FALSE
-force_join <- FALSE
+force_fetch <- TRUE
+force_join <- TRUE
 batter_file <- "temp/FanGraphs Leaderboard.csv"
 pitcher_file <- "temp/FanGraphs Leaderboard (1).csv"
 
@@ -31,8 +31,6 @@ if (force_fetch && (batter_file %>% is.null() || pitcher_file %>% is.null())) {
                                            batter_file, 
                                            pitcher_file)
 }
-
-#TODO review duplicates
 ```
 
 ```{r df_prep}
@@ -41,7 +39,8 @@ rosters_by_position <- row_per_position(rosters)
 team_batters_starters <- rosters_by_position %>% 
   optimal_lineup()
 
-# TODO get position factor ordering back, consider DL?
+# TODO consider DL?
+# FIXME a few empty position slots for a one or two teams
 rosters_by_position %>% 
   filter(team != "Free Agent",
          type == "pitcher") %>% 
@@ -91,6 +90,7 @@ standings_projected <- team_lineups %>%
             mean_pos_zar = mean(pos_zar),
             median_pos_zar = median(pos_zar),
             var_pos_zar = sd(pos_zar)) %>% 
+  mutate(adj_sum_pos_zar = sum_pos_zar - median(sum_pos_zar)) %>% 
   arrange(sum_pos_zar %>% desc)
 
 ```
@@ -98,13 +98,15 @@ standings_projected <- team_lineups %>%
 ```{r ros_team_rankings}
 rosters_by_position %>% 
   filter(team != "Free Agent") %>% 
+  mutate(zar = round(zar,2)) %>% 
   ggplot(aes(position, pos_zar, color = position, alpha = zar)) +
   geom_point(aes(text=name_full)) +
   facet_wrap(~ team) -> team_pos_adj
 
 ggplotly(team_pos_adj)
 
-team_lineups %>% 
+team_lineups %>%
+  mutate(zar = round(zar,2)) %>% 
   ggplot(aes(position, pos_zar, color = position, alpha = zar)) +
   geom_point(aes(text=name_full)) +
   facet_wrap(~ team) -> team_pos_optimal
@@ -112,28 +114,26 @@ team_lineups %>%
 ggplotly(team_pos_optimal)
 
 standings_projected %>% 
-  mutate(sum_pos_zar = sum_pos_zar - median(sum_pos_zar)) %>% 
-  mutate(team = fct_reorder(team, sum_pos_zar)) %>% 
-  ggplot(aes(team, sum_pos_zar)) +
+  mutate(team = fct_reorder(team, adj_sum_pos_zar)) %>% 
+  ggplot(aes(team, adj_sum_pos_zar)) +
   geom_col() +
+  geom_errorbar(aes(ymin=adj_sum_pos_zar-var_pos_zar, ymax=adj_sum_pos_zar+var_pos_zar), width = .5) +
   coord_flip()
-
-#TODO try other graph views, including error bars representing variance
 ```
 
 ```{r free_agents}
 #TODO abstract some of these views
 rosters %>% 
   mutate(zar = round(zar)) %>% 
-  filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 2)) %>% 
+  filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 3)) %>% 
   ggplot(aes(x=team,y=zar,color=type)) +
-  geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type))) +
+  geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type)), width=.3) +
   coord_flip() -> pa
 
 ggplotly(pa)
 
 rosters %>% 
-  filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 2)) %>% 
+  filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 3)) %>% 
   arrange(zar %>% desc) %>% 
   mutate(zar = zar %>% round(digits=1)) %>% 
   select(team, name_full, positions, type, zar) %>% 
@@ -213,4 +213,14 @@ rosters_by_position %>%
   ggplot(aes(pos_zar)) + 
   geom_freqpoly(binwidth=.25) + 
   facet_wrap(~ position)
+```
+
+```{r dups}
+#FIXME dups 
+rosters %>% count(player_id) %>% filter(n > 1) %>% left_join(rosters) -> dups
+
+dups %>% count(team)
+
+dups %>% select(team, manager, name_full, positions)
+
 ```
