@@ -113,6 +113,7 @@ team_lineups %>%
 
 ggplotly(team_pos_optimal)
 
+# FIXME pretty sure this error bar ain't right
 standings_projected %>% 
   mutate(team = fct_reorder(team, adj_sum_pos_zar)) %>% 
   ggplot(aes(team, adj_sum_pos_zar)) +

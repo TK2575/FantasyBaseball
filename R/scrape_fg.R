@@ -3,8 +3,11 @@ library(here)
 
 fprof <- makeFirefoxProfile(
   list(
-    browser.download.dir = here("temp"), 
     browser.download.folderList = 2L, 
+    browser.download.defaultFolder = here("temp"),
+    browser.download.dir = here("temp"),
+    browser.download.downloadDir = here("temp"),
+    browser.download.lastDir = here("temp"),
     browser.download.manager.showWhenStarting = FALSE, 
     browser.helperApps.neverAsk.saveToDisk = "text/csv"
     )
@@ -38,10 +41,12 @@ download_fg_csv <- function(url, rd) {
     client <- rd$client
     client$navigate(url)
     
-    # TODO avoid membership popup
-    
+    membership_popup_nothanks <- client$findElement(using = "xpath",
+                                                    value = '/html/body/div[5]/div[1]/div[3]/a[2]')
     csv_button <- client$findElement(using = "xpath", value = csv_xpath)
-    csv_button$clickElement
+    
+    membership_popup_nothanks$clickElement() # appears to do nothing if not there
+    csv_button$clickElement()
     client$close()
     
     # TODO rename downloaded file
@@ -52,7 +57,8 @@ download_fg_csv <- function(url, rd) {
 }
 
 # implementation
-rd <- start_local_server()
-download_fg_csv(url_projection_batter, rd)
+# rd <- start_local_server()
+# download_fg_csv(url_perf_batter, rd)
+# rd$server$stop()
 
 
