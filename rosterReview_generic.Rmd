@@ -95,6 +95,14 @@ standings_projected <- team_lineups %>%
 
 ```
 
+```{r myteam}
+rosters %>% 
+  filter(grepl("Plouffe",team)) %>% 
+  select(name_full, positions, zar) %>% 
+  arrange(zar %>% desc) %>% 
+  View("My Team")
+```
+
 ```{r ros_team_rankings}
 rosters_by_position %>% 
   filter(team != "Free Agent") %>% 
@@ -143,9 +151,9 @@ rosters %>%
 
 ```{r trade_eval}
 # TODO find way to wrap these three views into one
-rosters %>% 
-  filter(grepl("Plouffe|Mata",team)) %>% 
-  select(team, manager, name_full, display_position, zar, positions) %>% 
+rosters_by_position %>% 
+  filter(grepl("Plouffe|Bumpin",team)) %>% 
+  select(team, manager, name_full, display_position, zar, pos_zar, positions, draft_round) %>% 
   arrange(zar %>% desc) %>% 
   mutate(zar = zar %>% round(1)) %>% 
   View("Trade Partner")
@@ -153,7 +161,7 @@ rosters %>%
   # write_csv("data/tradeReview_20190423.csv")
 
 rosters %>% 
-  filter(grepl("Plouffe|Mata",team)) %>% 
+  filter(grepl("Plouffe|Bumpin",team)) %>% 
   ggplot(aes(x=team,y=zar,color=type)) +
   geom_jitter(aes(text=glue("{name_full} - {display_position}", color=type)), width=.2) +
   coord_flip() -> tv
