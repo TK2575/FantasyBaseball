@@ -155,13 +155,14 @@ load_players_with_projections <-
         mutate(team = if_else(is.na(team), "Free Agent", team),
                team = fct_reorder(team, z_sum)) %>%
         compact_positions() %>% 
-        rescale_z_sum()
+        rescale_z_sum() %>% 
+        dplyr::distinct()
       
-        if (force_fetch) { 
-          result %>% 
-            saveRDS(filename_today_rds(file))
-        }
+      result %>% 
+        saveRDS(filename_today_rds(file))
+      
       result
+      
     } else {
       read_latest_file_rds(file) 
     }
