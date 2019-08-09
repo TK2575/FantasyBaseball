@@ -104,6 +104,7 @@ rosters %>%
 ```
 
 ```{r ros_team_rankings}
+# TODO adjust for DL
 rosters_by_position %>% 
   filter(team != "Free Agent") %>% 
   mutate(zar = round(zar,2)) %>% 
