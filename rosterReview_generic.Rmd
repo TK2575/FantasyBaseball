@@ -142,11 +142,19 @@ rosters %>%
 
 ggplotly(pa)
 
-rosters %>% 
+free_agent_compare <- 
+  rosters %>% 
   filter((team == 'Free Agent' & zar >=0) | (grepl("Plouffe",team) & zar < 3)) %>% 
   arrange(zar %>% desc) %>% 
-  mutate(zar = zar %>% round(digits=1)) %>% 
-  select(team, name_full, positions, type, zar) %>% 
+  mutate(zar = zar %>% round(digits=1))
+
+free_agent_compare %>% 
+  # select(team, name_full, positions, type, zar) %>% 
+  select(team, name_full, positions, type, zar, g:war, z_r:z_whip)
+  View("Available Free Agents Expanded")
+  
+free_agent_compare %>% 
+  select(team, name_full, positions, type, zar) %>%
   View("Available Free Agents")
 ```
 
