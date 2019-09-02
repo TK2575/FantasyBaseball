@@ -150,7 +150,7 @@ free_agent_compare <-
 
 free_agent_compare %>% 
   # select(team, name_full, positions, type, zar) %>% 
-  select(team, name_full, positions, type, zar, g:war, z_r:z_whip)
+  select(team, name_full, positions, type, zar, g:war, z_r:z_whip) %>% 
   View("Available Free Agents Expanded")
   
 free_agent_compare %>% 
