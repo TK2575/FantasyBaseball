@@ -40,16 +40,18 @@ authenticate <- function() {
 }
 
 get_json <- function(path) {
-  
-  config <- authenticate()
-  ua <- user_agent("http://github.com/TK2575/ff_data")
-  
   base <- "https://fantasysports.yahooapis.com/fantasy/v2/"
   req_json <- "/?response=json"
   
   url <- paste0(base, path, req_json)
-  
+  get_json_url(url)
+}
+
+get_json_url <- function(url) {
   print(url)
+  
+  config <- authenticate()
+  ua <- user_agent("http://github.com/TK2575/ff_data")
   
   resp <- GET(url = url, config = config, ua)
   if (http_type(resp) != "application/json") {
@@ -128,6 +130,8 @@ get_players_page <- function(start=0) {
     tibble()
   }
 }
+
+httr::oauth_endpoint()
 
 league_string <- function(game_key=388) {
   league_key <- Sys.getenv("LEAGUE_KEY")
