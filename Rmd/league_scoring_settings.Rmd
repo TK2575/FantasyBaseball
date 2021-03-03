@@ -1,0 +1,111 @@
+---
+title: "League Scoring Settings"
+author: "Tom Kain"
+date: "3/2/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+library(here)
+source(here::here("R", "scrape_bref.R"))
+```
+
+```{r import}
+
+year <- 2020
+batting_raw <- player_standard_batting(year)
+pitching_raw <- player_standard_pitching(year)
+starting_pitching_raw <- player_starting_pitching(year)
+relief_pitching_raw <- player_relief_pitching(year)
+```
+
+```{r clean}
+
+clean <- function(df) {
+  df %>% 
+    filter(name != 'Name') %>% 
+    mutate(rk = as.numeric(rk)) %>% 
+    group_by(name) %>% 
+    arrange(name, rk) %>% 
+    mutate(rnk = row_number()) %>% 
+    filter(rnk == 1) %>% 
+    ungroup()
+}
+
+batting <- 
+  batting_raw %>% 
+  clean() %>% 
+  select(-rk, -rnk, -name, -age, -tm, -lg) %>% 
+  sapply(as.numeric) %>% 
+  as_tibble() %>% 
+  filter(g >= 10)
+
+starting_pitching <- 
+  starting_pitching_raw %>% 
+  clean() %>% 
+  select(name, qs)
+
+relief_pitching <-
+  relief_pitching_raw %>% 
+  clean() %>% 
+  select(name, b_sv) %>% 
+  rename(bsv = b_sv)
+  
+pitching <-
+  pitching_raw %>% 
+  clean() %>% 
+  left_join(starting_pitching, by = "name") %>% 
+  left_join(relief_pitching, by = "name") %>% 
+  select(-name, -rk, -rnk, -age, -tm, -lg) %>% 
+  sapply(as.numeric) %>% 
+  as_tibble() %>% 
+  filter(g >= 10) %>% 
+  mutate(qs = if_else(is.na(qs), 0, qs),
+         bsv = if_else(is.na(bsv), 0, bsv))
+
+```
+
+```{r scoring rules}
+
+batting <- 
+  batting %>% 
+  mutate(x1b = h - x2b - x3b - hr,
+         tb = x1b + (2 * x2b) + (3 * x3b) + (4 * hr),
+         points = r + x1b + (2 * x2b) + (3 * x3b) + (4 * hr) + tb + (2 * rbi) + bb + (-3 * so) + (2 * sb) + (-2 * cs))
+
+pitching <-
+  pitching %>% 
+  mutate(ip_whole = round(ip),
+         points = (ip_whole * 3) + (-1 * h) + (-2 * er) + (-1 * bb) +  so + (5 * qs) + (10 * sho) + (10 * w) + (-5 * l) + (7 * sv) + (-3 * bsv))
+
+```
+
+```{r point results}
+
+points <-
+  batting %>% 
+  group_by(points) %>% 
+  summarize(batting = n()) %>% 
+  ungroup() %>% 
+  pivot_longer(!points, names_to = "position", values_to = "count")
+  
+
+points <- 
+  pitching %>% 
+  group_by(points) %>% 
+  summarize(pitching = n()) %>% 
+  ungroup() %>% 
+  pivot_longer(!points, names_to = "position", values_to = "count") %>% 
+  bind_rows(points)
+
+
+points %>% 
+  ggplot(aes(x = points, group=position, color=position)) +
+  geom_freqpoly()
+
+```
