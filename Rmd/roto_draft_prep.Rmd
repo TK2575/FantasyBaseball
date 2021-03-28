@@ -36,14 +36,6 @@ rankings <-
   head(400) %>% 
   mutate(pos_primary = str_extract(pos, '^[^/]+'))
 
-rankings %>% 
-  mutate(adp_round = (adp / 12) %>% ceiling(),
-         adp = adp %>% round(),
-         rank = row_number(),
-         dollars = dollars %>% round()) %>% 
-  select(name, pos_primary, adp_round, rank, dollars) %>% 
-  write_csv(here::here("out", "fb_roto_2021.csv"))
-
 ```
 
 ```{r}
@@ -60,5 +52,20 @@ rankings %>%
   geom_point() +
   geom_smooth(aes(group=1), method = "lm") + 
   facet_wrap(~pos_primary)
+
+```
+
+```{r Write Output}
+
+output <-
+  rankings %>% 
+  mutate(adp_round = (adp / 12) %>% ceiling(),
+         adp = adp %>% round(),
+         rank = row_number(),
+         dollars = dollars %>% round()) %>% 
+  select(name, pos_primary, adp_round, rank, dollars)
+
+output %>% 
+  write_csv(here::here("out", "fb_roto_2021.csv"))
 
 ```
