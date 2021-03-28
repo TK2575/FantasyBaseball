@@ -42,7 +42,7 @@ rankings %>%
          rank = row_number(),
          dollars = dollars %>% round()) %>% 
   select(name, pos_primary, adp_round, rank, dollars) %>% 
-  
+  write_csv(here::here("out", "fb_roto_2021.csv"))
 
 ```
 
