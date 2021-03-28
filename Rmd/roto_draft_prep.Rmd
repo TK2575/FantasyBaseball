@@ -36,6 +36,14 @@ rankings <-
   head(400) %>% 
   mutate(pos_primary = str_extract(pos, '^[^/]+'))
 
+rankings %>% 
+  mutate(adp_round = (adp / 12) %>% ceiling(),
+         adp = adp %>% round(),
+         rank = row_number(),
+         dollars = dollars %>% round()) %>% 
+  select(name, pos_primary, adp_round, rank, dollars) %>% 
+  
+
 ```
 
 ```{r}
